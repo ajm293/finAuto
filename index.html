@@ -108,13 +108,17 @@
 
         function FA(graph) {
             this.graph = graph;
-            this.arrows = this.collapseArrows(this.graph);
 
             this.q = graph.states;
             this.sigma = [...new Set(graph.alphabet.concat("\u03b5"))];
-            this.transitionFunction = null;
+
             this.q0 = graph.initialState;
             this.f = graph.acceptingStates;
+
+            this.q0arrow = this.graph.initialArrow;
+            this.arrows = this.collapseArrows(this.graph.transitions);
+
+            this.delta = null;
 
             this.input = null;
 
@@ -144,6 +148,7 @@
                 )
             }
             let newArrows = Array.from(tempMap.values());
+            newArrows = newArrows.filter(item => item !== this.q0arrow);
             delete tempMap;
             return newArrows;
         }
@@ -155,16 +160,23 @@
             // transition from State_i for the input symbol Sigma_j, of which it 
             // is the kth Arrow satisfying those conditions. Otherwise, 
             // the element is null.
-            this.transitionFunction = Array(this.q.length).fill().map(
+            this.delta = Array(this.q.length).fill().map(
                 () => Array(this.sigma.length).fill().map(
                     () => Array(this.q.length).fill(null)
                 )
             );
 
-            for (let i = 0; i < this.q.length; i++) {
-                for (let j = 0; j < this.sigma.length; j++) {
+            for (let k = 0; k < this.arrows.length; k++) {
+                let kthArrow = this.arrows[k];
+                let i = this.q.indexOf(kthArrow.fromState);
+                console.log(i);
 
+                if (kthArrow.label.text == ''){
+                    kthArrow.label.text == '\u03b5';
                 }
+
+                let j = this.sigma.indexOf(kthArrow.label.text);
+                this.delta[i][j][k] = kthArrow;
             }
         }
 
