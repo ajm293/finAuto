@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="fonts/fonts.css">
+    <script src="pixi.js"></script>
+    <script src="graphics.js"></script>
+    <style>
+        body {
+            text-align: center;
+        }
+
+        .inputs>div {
+            display: inline-flex;
+            margin: 10px 10px 0 10px;
+            vertical-align: middle;
+        }
+
+        .inputs>div input[type=button] {
+            padding: 4px 10px;
+            font-size: 1.5rem;
+            border: 1;
+            border-radius: 8px;
+            background-color: #fff6d0;
+        }
+
+        .inputs>div input[type=text] {
+            font-size: 1.5rem;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-position"></div>
+    <div class="inputs">
+        <div>
+            <input type="button" value="Add state" id="addstate" />
+        </div>
+        <div>
+            <input type="button" value="Add arrow" id="addarrow" />
+        </div>
+        <div>
+            <input type="button" value="Delete selected" id="delstate" />
+        </div>
+        <div>
+            <input type="text" id="inputbox" placeholder="Nothing selected" autofocus="true" />
+        </div>
+        <div>
+            <input type="button" value="Normal" id="accept" />
+        </div>
+
+
+    </div>
+    <script>
+
+        // Application constants
+
+        const STATE_RADIUS = 25;
+        const log = console.log;
+
+        const states = [];
+        const arrows = [];
+
+        var workingGraph = null;
+
+        // Initialisation
+
+        let app = new PIXI.Application({
+            width: 1024,
+            height: 576,
+            backgroundColor: 0xfdf0ce,
+            resolution: window.devicePixelRatio || 1,
+            antialias: true,
+            autoDensity: true
+        });
+        document.getElementById('app-position').appendChild(app.view);
+
+        // Font objects
+
+        const cmodern = new PIXI.TextStyle({
+            fontFamily: 'Computer Modern Serif',
+            //fontStyle: 'italic',
+            fontSize: 24
+        });
+
+        // Unique object ID, mainly for collapsing arrows
+        // https://stackoverflow.com/questions/2020670/javascript-object-id
+
+        var objMap = new WeakMap();
+        var objCount = 0;
+
+        function objectID(object) {
+            if (!objMap.has(object)) objMap.set(object, ++objCount);
+            return objMap.get(object);
+        }
+
+        // ArrowConstructor prototypes
+
+        function ArrowConstructor() {
+            this.fromState = null;
+            this.toState = null;
+            this.initial = false;
+            this.loop = false;
+        }
+
+        // Finite Automaton prototypes
+
+        function FA(graph) {
+            this.graph = graph;
+            this.arrows = this.collapseArrows(this.graph);
+
+            this.q = graph.states;
+            this.sigma = [...new Set(graph.alphabet.concat("\u03b5"))];
+            this.transitionFunction = null;
+            this.q0 = graph.initialState;
+            this.f = graph.acceptingStates;
+
+            this.input = null;
+
+            this.output = false;
+            this.deterministic = false;
+        }
+
+        FA.prototype.stringifyArrow = function (arrow) {
+            let properties = [objectID(arrow.fromState), objectID(arrow.toState), arrow.label.text];
+            return JSON.stringify(properties);
+        }
+
+        FA.prototype.collapseArrows = function (arrows) {
+            // Since there may be multiple functionally equivalent arrows between
+            // two states in a Graph, all except one of these arrows must be removed
+            // to form the FA for a sensible transition function. This is done by
+            // creating a Map from a stringified version of the properties we actually
+            // care about in arrows (fromState, toState, symbol) to the Arrow objects
+            // themselves, and then taking the values of the Map to be our new array
+            // of arrows. Any functionally equivalent arrow properties will become just
+            // one key in the Map, mapping to crucially one Arrow.
+            let tempMap = new Map();
+            for (let i = 0; i < arrows.length; i++) {
+                tempMap.set(
+                    this.stringifyArrow(arrows[i]),
+                    arrows[i]
+                )
+            }
+            let newArrows = Array.from(tempMap.values());
+            delete tempMap;
+            return newArrows;
+        }
+
+        FA.prototype.buildTransitionFunction = function () {
+            // Here, we build the FA's transition function as a transition matrix
+            // of size MxNxM, where M is |Q| and N is |Sigma|.
+            // An element A(i,j,k) in the matrix is an Arrow if there is a
+            // transition from State_i for the input symbol Sigma_j, of which it 
+            // is the kth Arrow satisfying those conditions. Otherwise, 
+            // the element is null.
+            this.transitionFunction = Array(this.q.length).fill().map(
+                () => Array(this.sigma.length).fill().map(
+                    () => Array(this.q.length).fill(null)
+                )
+            );
+
+            for (let i = 0; i < this.q.length; i++) {
+                for (let j = 0; j < this.sigma.length; j++) {
+
+                }
+            }
+        }
+
+        FA.prototype.isDeterministic = function () {
+            // For a finite automaton to be deterministic, every state must
+            // have exactly one transition for every symbol in its alphabet.
+            // Here, transitions are Arrows and symbols are the associated
+            // Arrow.label.text. This is done by iterating over the adjacency
+            // matrix.
+        }
+
+        // Graph prototypes
+
+        function Graph() {
+            this.states = [];
+            this.transitions = [];
+            this.initialState = null;
+            this.initialArrow = null;
+            this.acceptingStates = [];
+            this.alphabet = [];
+        }
+
+        Graph.prototype.makeAccepting = function (state) {
+            if (this.states.includes(state)) {
+                if (this.acceptingStates.includes(state)) {
+                    throw "State is already accepting";
+                } else {
+                    this.acceptingStates.push(state);
+                    state.makeAccepting();
+                }
+            } else {
+                throw "State not in graph";
+            }
+        }
+
+        Graph.prototype.removeAcception = function (state) {
+            if (this.acceptingStates.includes(state)) {
+                this.acceptingStates = this.acceptingStates.filter(item => item !== state);
+                state.makeNormal();
+            } else {
+                throw "State is already normal or not in graph";
+            }
+        }
+
+        Graph.prototype.addState = function (text, x, y) {
+            let newState = new State(text, x, y);
+            this.states.push(newState);
+            return newState;
+        }
+
+        Graph.prototype.removeState = function (state) {
+            this.states = this.states.filter(item => item !== state);
+
+            let arrowsToRemove = []
+
+            for (let i = 0; i < this.transitions.length; i++) {
+                if ((this.transitions[i].fromState == state) || (this.transitions[i].toState == state)) {
+                    arrowsToRemove.push(this.transitions[i]);
+                }
+            }
+
+            for (let i = 0; i < arrowsToRemove.length; i++) {
+                this.removeArrow(arrowsToRemove[i]);
+            }
+
+            state.graphics.destroy(true);
+            delete state;
+        }
+
+        Graph.prototype.addArrow = function (fromState, toState, text, loop, initial) {
+            let newArrow = new Arrow(fromState, toState, text, loop, initial);
+            this.transitions.push(newArrow);
+            if (initial) {
+                this.initialState = fromState;
+                this.initialArrow = newArrow;
+            }
+            this.alphabet.push(text);
+            console.log(this.alphabet);
+            return newArrow;
+        }
+
+        Graph.prototype.removeArrow = function (arrow) {
+            this.transitions = this.transitions.filter(item => item !== arrow);
+            let index = this.alphabet.indexOf(arrow.label.text);
+            this.alphabet.splice(index, 1);
+            arrow.label.destroy();
+            arrow.graphics.destroy(true);
+            delete arrow;
+        }
+
+        Graph.prototype.updateAlphabet = function (oldLabel, newLabel) {
+            let index = this.alphabet.indexOf(oldLabel);
+            this.alphabet.splice(index, 1);
+
+            if (newLabel == "") newLabel = "\u03b5";
+            this.alphabet.push(newLabel);
+            console.log(this.alphabet);
+        }
+
+        // State prototypes
+
+        function State(text, x, y) {
+            this.graphics = new PIXI.Graphics();
+            this.label = new PIXI.Text(text, cmodern);
+
+            this.initGraphics(x, y);
+
+            this.accepting = false;
+
+            states.push(this);
+
+            return this;
+        }
+
+        State.prototype.initGraphics = function (x, y) {
+            this.graphics.lineStyle(2, 0x000000);
+            this.graphics.beginFill(0xffffff);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
+            this.graphics.endFill();
+
+            this.graphics.x = x;
+            this.graphics.y = y;
+
+            this.graphics.pivot.x = this.graphics.width / 2;
+            this.graphics.pivot.y = this.graphics.height / 2;
+
+            this.label.x = this.graphics.width / 2;
+            this.label.y = this.graphics.height / 2;
+            this.label.anchor.set(0.5);
+            this.graphics.addChild(this.label);
+
+            this.initInteraction();
+            app.stage.addChild(this.graphics);
+        }
+
+        State.prototype.initInteraction = function () {
+            this.graphics.interactive = true;
+            this.graphics.cursor = 'pointer';
+            this.graphics.on('pointerdown', onDragStart, this.graphics);
+            this.graphics.on('pointerdown', onButtonDown, this);
+        }
+
+        State.prototype.makeAccepting = function () {
+            this.accepting = true;
+            this.graphics.lineStyle(2, 0x000000);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS - 3);
+        }
+
+        State.prototype.makeNormal = function () {
+            this.accepting = false;
+            this.graphics.clear();
+            this.graphics.lineStyle(2, 0x000000);
+            this.graphics.beginFill(0xffffff);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
+            this.graphics.endFill();
+        }
+
+        State.prototype.focus = function () {
+
+        }
+
+        // Arrow prototypes
+
+        function Arrow(fromState, toState, text, loop, initial) {
+            this.loop = loop;
+            this.initial = initial;
+
+            this.fromState = fromState;
+            this.toState = toState;
+
+            this.graphics = new PIXI.Graphics();
+            this.label = new PIXI.Text(text, cmodern);
+
+            if (initial) {
+                this.label.visible = false;
+            }
+
+            this.graphics.parallel = 0.5;
+            this.graphics.perpendicular = 0;
+
+            this.initGraphics();
+
+            arrows.push(this);
+
+            return this;
+        }
+
+        Arrow.prototype.initGraphics = function () {
+            this.initInteraction();
+
+            app.stage.addChild(this.graphics);
+            if (!this.loop && !this.initial) {
+                app.stage.addChild(this.label);
+            } else {
+                this.label.anchor.set(0.5, 0.5);
+                this.graphics.addChild(this.label);
+            }
+        }
+
+        Arrow.prototype.initInteraction = function () {
+            this.graphics.interactive = true;
+            this.graphics.cursor = 'pointer';
+            this.graphics.on('pointerdown', onButtonDown, this);
+            if (this.initial) {
+                this.graphics.toState = this.toState;
+                this.graphics.on('pointerdown', onInitialArrowDragStart, this.graphics);
+            } else if (this.loop) {
+                this.graphics.fromState = this.fromState;
+                this.graphics.label = this.label;
+                this.graphics.on('pointerdown', onLoopArrowDragStart, this.graphics);
+            } else {
+                this.graphics.on('pointerdown', onArrowDragStart, this.graphics);
+            }
+        }
+
+        Arrow.prototype.update = function () {
+            if (this.initial) {
+                this.updateInitial();
+                return;
+            } else if (this.loop) {
+                this.updateLoop();
+                return;
+            }
+            let state1 = this.fromState.graphics;
+            let state2 = this.toState.graphics;
+
+            let parallel = this.graphics.parallel;
+            let perpendicular = this.graphics.perpendicular;
+
+            let dx = state1.x - state2.x;
+            let dy = state1.y - state2.y;
+
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            let anchorX = state2.x + dx * parallel - dy * perpendicular / distance;
+            let anchorY = state2.y + dy * parallel + dx * perpendicular / distance;
+
+            let c = circleFromABC(state2.x, state2.y, state1.x, state1.y, anchorX, anchorY);
+
+            let temp = 0;
+
+            this.graphics.clear();
+            this.graphics.lineStyle(2, 0x000000, 1);
+
+            if (perpendicular > 0) {
+                let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
+                let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) + STATE_RADIUS / c.r;
+                this.graphics.arc(
+                    c.x,
+                    c.y,
+                    c.r,
+                    Math.PI + startAngle,
+                    Math.PI + endAngle,
+                );
+
+                let midAngle = ((endAngle < startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2
+                this.label.anchor.set(0.5, 0.5);
+                this.label.x = c.x + (c.r + this.label.width / 2 + 15) * Math.cos(Math.PI + midAngle);
+                this.label.y = c.y + (c.r + 15) * Math.sin(Math.PI + midAngle);
+
+                ax = c.x + c.r * Math.cos(Math.PI + endAngle);
+                ay = c.y + c.r * Math.sin(Math.PI + endAngle);
+
+                drawArrowhead(this.graphics, ax, ay, -endAngle);
+
+            } else if (perpendicular < 0) {
+                let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
+                let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) - STATE_RADIUS / c.r;
+                this.graphics.arc(
+                    c.x,
+                    c.y,
+                    c.r,
+                    Math.PI + endAngle,
+                    Math.PI + startAngle,
+                );
+
+                let midAngle = ((endAngle > startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
+                this.label.anchor.set(0.5, 0.5);
+                this.label.x = c.x + (c.r + this.label.width / 2 + 15) * Math.cos(Math.PI + midAngle);
+                this.label.y = c.y + (c.r + 15) * Math.sin(Math.PI + midAngle);
+
+                ax = c.x + c.r * Math.cos(Math.PI + endAngle);
+                ay = c.y + c.r * Math.sin(Math.PI + endAngle);
+
+                drawArrowhead(this.graphics, ax, ay, -endAngle, true);
+
+            } else {
+
+                let point1 = closestPointOnCircle(state2.x, state2.y, state1.x, state1.y, STATE_RADIUS);
+                this.graphics.moveTo(point1.x, point1.y);
+                let point2 = closestPointOnCircle(state1.x, state1.y, state2.x, state2.y, STATE_RADIUS);
+                this.graphics.lineTo(point2.x, point2.y);
+
+                let textAngle = Math.atan2(state2.x - state1.x, state1.y - state2.y);
+                let sin = Math.sin(textAngle + Math.PI);
+                let cos = Math.cos(textAngle + Math.PI);
+                this.label.anchor.set((cos > 0 ? 0 : 1), (sin > 0 ? 0 : 1));
+                this.label.x = anchorX + cos * 5
+                this.label.y = anchorY + sin * 5
+
+                drawArrowhead(this.graphics, point2.x, point2.y, point2.angle);
+            }
+
+        }
+
+        Arrow.prototype.updateInitial = function () {
+            this.graphics.x = this.toState.graphics.x;
+            this.graphics.y = this.toState.graphics.y;
+
+            this.graphics.clear();
+            this.graphics.moveTo(-STATE_RADIUS - 25, 0);
+            this.graphics.lineStyle(2, 0x000000);
+            this.graphics.lineTo(-STATE_RADIUS, 0);
+
+            drawArrowhead(this.graphics, -STATE_RADIUS, 0, 2 * Math.PI - Math.PI / 2);
+
+        }
+
+        Arrow.prototype.updateLoop = function () {
+            let p1x = -20;
+            let p1y = -50 - STATE_RADIUS;
+
+            let p2x = +20;
+            let p2y = -50 - STATE_RADIUS;
+
+            let start = closestPointOnCircle(p1x, p1y, 0, 0, STATE_RADIUS);
+            let end = closestPointOnCircle(p2x, p2y, 0, 0, STATE_RADIUS);
+
+            this.graphics.clear();
+
+            this.graphics.x = this.fromState.graphics.x;
+            this.graphics.y = this.fromState.graphics.y;
+            this.graphics.moveTo(start.x, start.y);
+            this.graphics.lineStyle(2, 0x000000);
+            this.graphics.bezierCurveTo(
+                p1x, p1y,
+                p2x, p2y,
+                end.x, end.y
+            );
+
+            this.label.x = 0;
+            this.label.y = p2y;
+
+            drawArrowhead(this.graphics, end.x, end.y, end.angle);
+
+        }
+
+        Arrow.prototype.focus = function () {
+
+        }
+
+        function updateAll() {
+            for (let i = 0; i < workingGraph.transitions.length; i++) {
+                workingGraph.transitions[i].update();
+            }
+        }
+
+        // Helper functions
+
+        /**
+         * Draw an arrowhead at a point given an angle
+         */
+        function drawArrowhead(arrow, x, y, angle, reversed) {
+            arrow.moveTo(x, y);
+            arrow.beginFill(0x000000);
+            if (reversed) {
+                arrow.lineTo(x - 10 * Math.sin(Math.PI / 6 + angle), y - 10 * Math.cos(Math.PI / 6 + angle));
+                arrow.lineTo(x - 10 * Math.sin(angle - Math.PI / 6), y - 10 * Math.cos(angle - Math.PI / 6));
+            } else {
+                arrow.lineTo(x + 10 * Math.sin(Math.PI / 6 + angle), y + 10 * Math.cos(Math.PI / 6 + angle));
+                arrow.lineTo(x + 10 * Math.sin(angle - Math.PI / 6), y + 10 * Math.cos(angle - Math.PI / 6));
+            }
+            arrow.lineTo(x, y);
+            arrow.endFill();
+        }
+
+        /**
+         * Calculate the closest point from (x1,y1) on a circle with centre (x2,y2) and radius r
+         */
+        function closestPointOnCircle(x1, y1, x2, y2, r) {
+            let angle = Math.atan2(x1 - x2, y1 - y2);
+            return {
+                'x': x2 + r * Math.sin(angle),
+                'y': y2 + r * Math.cos(angle),
+                'angle': angle
+            }
+        }
+
+        //-----Main-----//
+
+        // Canvas initialisation
+
+        app.stage.interactive = true;
+        app.stage.hitArea = app.screen;
+        app.stage.on('pointerup', onDragEnd);
+        app.stage.on('pointerupoutside', onDragEnd);
+
+        // Interaction initialisation
+
+        document.getElementById('accept').disabled = true;
+
+        var dragTarget = null;
+        var focusTarget = null;
+        var mousePos = { x: 0, y: 0 };
+        var creatingArrow = null;
+        var addingState = false;
+
+        let bg = new PIXI.Sprite(); // Invisible sprite for defocusing
+        bg.width = app.screen.width;
+        bg.height = app.screen.height;
+
+        bg.interactive = true;
+        bg.on('pointerdown', onButtonDown, bg);
+        app.stage.addChild(bg);
+
+        let stateGhost = new PIXI.Graphics(); // Normally invisible stage 'ghost', visible on state creation
+        stateGhost.lineStyle({ width: 2, color: 0x000000 });
+        stateGhost.beginFill(0xffffff);
+        stateGhost.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
+        stateGhost.endFill();
+        stateGhost.alpha = 0.5;
+
+        stateGhost.pivot.x = stateGhost.width / 2;
+        stateGhost.pivot.y = stateGhost.height / 2;
+
+        app.stage.addEventListener('pointermove', (e) => {
+            stateGhost.position.copyFrom(e.global);
+        });
+        stateGhost.interactive = true;
+        stateGhost.on('pointerdown', onButtonDown, stateGhost);
+
+        app.stage.addChild(stateGhost);
+        stateGhost.visible = false;
+
+        let arrowGhost = new PIXI.Text("Click on starting state, or canvas if initial.", cmodern);
+        arrowGhost.x = 15;
+        arrowGhost.y = 15;
+
+        arrowGhost.visible = false;
+        app.stage.addChild(arrowGhost);
+
+
+        function initControls() {
+            document.getElementById('inputbox').value = null;
+            document.getElementById('inputbox').disabled = true;
+            document.getElementById('delstate').disabled = true;
+
+            document.getElementById('addstate').onclick = function () {
+                addingState = true;
+                stateGhost.visible = true;
+            }
+
+            document.getElementById('delstate').onclick = function () {
+                if (focusTarget instanceof State) {
+                    workingGraph.removeState(focusTarget);
+                } else if (focusTarget instanceof Arrow) {
+                    workingGraph.removeArrow(focusTarget);
+                }
+                focusTarget = null;
+                document.getElementById('inputbox').value = null;
+                document.getElementById('inputbox').placeholder = "Nothing selected";
+                document.getElementById('inputbox').disabled = true;
+                document.getElementById('delstate').disabled = true;
+            }
+
+            document.getElementById('inputbox').onkeyup = function () {
+                if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
+                    if (focusTarget instanceof Arrow) {
+                        workingGraph.updateAlphabet(focusTarget.label.text, document.getElementById('inputbox').value);
+                    }
+                    focusTarget.label.text = document.getElementById('inputbox').value;
+                    if (document.getElementById('inputbox').value == '') {
+                        document.getElementById('inputbox').placeholder = "Empty string";
+                    }
+                }
+            }
+
+            document.getElementById('addarrow').onclick = function () {
+                if (workingGraph.states[0]) {
+                    creatingArrow = new ArrowConstructor();
+                    arrowGhost.visible = true;
+                }
+            }
+
+            document.getElementById('accept').onclick = function () {
+                if (focusTarget instanceof State) {
+                    if (focusTarget.accepting) {
+                        workingGraph.removeAcception(focusTarget);
+                        document.getElementById('accept').value = "Normal";
+                    } else {
+                        workingGraph.makeAccepting(focusTarget);
+                        document.getElementById('accept').value = "Accepting";
+                    }
+                }
+            }
+        }
+
+        initControls();
+
+        // Demo configuration
+
+        var graph = new Graph();
+        workingGraph = graph;
+
+        /**var q1 = graph.addState("1");
+        var q2 = graph.addState("2");
+        var q3 = graph.addState("3");
+
+        var a1 = graph.addArrow(q1, q2, "a", false, false);
+        var a2 = graph.addArrow(q2, q3, "b", false, false);
+        var a3 = graph.addArrow(q3, q1, "c", false, false);
+        var a4 = graph.addArrow(q2, q2, "d", true, false);
+        var ainit = graph.addArrow(q1, q1, "e", false, true);**/
+
+        // Event handling functions
+
+        function onInputText() {
+            if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
+                focusTarget.label.text = document.getElementById('inputbox').value;
+            }
+        }
+
+        function onButtonDown(event) {
+            focusTarget = this;
+
+            if (addingState) {
+                workingGraph.addState("new", event.global.x, event.global.y);
+                addingState = false;
+                stateGhost.visible = false;
+            }
+
+            if (creatingArrow instanceof ArrowConstructor) { // Handle arrow creation
+                if ((creatingArrow.fromState || creatingArrow.initial) && focusTarget instanceof State) { // Stage 2
+                    creatingArrow.toState = focusTarget;
+                    if (creatingArrow.initial) {
+                        creatingArrow.fromState = focusTarget;
+                        if (workingGraph.initialArrow) workingGraph.removeArrow(workingGraph.initialArrow);
+                        workingGraph.initialState = focusTarget;
+                    }
+                    focusTarget = workingGraph.addArrow(
+                        creatingArrow.fromState,
+                        creatingArrow.toState,
+                        "\u03b5",
+                        (creatingArrow.fromState == creatingArrow.toState),
+                        creatingArrow.initial
+                    );
+                    if (creatingArrow.initial) {
+                        workingGraph.initialArrow = focusTarget;
+                    }
+                    delete creatingArrow;
+                    creatingArrow = null;
+                    arrowGhost.visible = false;
+                    arrowGhost.text = "Click on starting state, or canvas if initial.";
+                } else if (focusTarget instanceof State) { // Stage 1 for state->state arrow
+                    creatingArrow.fromState = focusTarget;
+                    arrowGhost.text = "Click on finishing state.";
+                    return;
+                } else if ((focusTarget == bg) && !creatingArrow.initial) { // Stage 1 for initial arrow
+                    creatingArrow.initial = true;
+                    arrowGhost.text = "Click on initial state.";
+                    return;
+                } else { // Terminate creation
+                    arrowGhost.visible = false;
+                    arrowGhost.text = "Click on starting state, or canvas if initial.";
+                    delete creatingArrow;
+                    creatingArrow = null;
+                    return;
+                }
+            }
+
+            if (focusTarget instanceof State) { // Handle accepting/normal button
+                document.getElementById('accept').disabled = false;
+                if (focusTarget.accepting) {
+                    document.getElementById('accept').value = "Accepting";
+                } else {
+                    document.getElementById('accept').value = "Normal";
+                }
+            } else {
+                document.getElementById('accept').disabled = true;
+            }
+
+            if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) { // Handle transition input box
+                document.getElementById('inputbox').disabled = false;
+                document.getElementById('delstate').disabled = false;
+                document.getElementById('inputbox').value = focusTarget.label.text;
+                if (focusTarget.label.text == '') {
+                    document.getElementById('inputbox').placeholder = 'Empty string';
+                }
+            } else {
+                document.getElementById('inputbox').value = '';
+                document.getElementById('inputbox').placeholder = 'Nothing selected';
+                document.getElementById('inputbox').disabled = true;
+                document.getElementById('delstate').disabled = true;
+            }
+        }
+
+        function onDragMove(event) {
+            if (dragTarget) {
+                dragTarget.parent.toLocal(event.global, null, dragTarget.position);
+            }
+        }
+
+        function onArrowDragMove(event) {
+            let dy = mousePos.y - event.global.y;
+            if (dragTarget) {
+                dragTarget.perpendicular += dy;
+                mousePos.y = event.global.y;
+            }
+        }
+
+        function onLoopArrowDragMove(event) {
+            if (dragTarget) {
+                let dx = event.global.x - dragTarget.fromState.graphics.x;
+                let dy = event.global.y - dragTarget.fromState.graphics.y;
+                let angle = Math.atan2(dy, dx);
+
+                // Loop arrow is by default at PI/2, therefore we add PI/2 as an offset
+                dragTarget.rotation = angle + Math.PI / 2;
+                // Label is rotated by negative of the loop to maintain visible orientation
+                dragTarget.label.rotation = -(angle + Math.PI / 2);
+
+                let snap = Math.round(dragTarget.angle / (90)) * (90);
+                if (Math.abs(dragTarget.angle - snap) < 5) {
+                    dragTarget.angle = snap;
+                    dragTarget.label.angle = -snap;
+                }
+            }
+        }
+
+        function onLoopArrowDragStart(event) {
+            dragTarget = this;
+            app.stage.on('pointermove', onLoopArrowDragMove);
+            mousePos.x = event.global.x;
+            mousePos.y = event.global.y;
+        }
+
+        function onInitialArrowDragMove(event) {
+            let dx = mousePos.x - event.global.x;
+            if (dragTarget) {
+                let dx = event.global.x - dragTarget.toState.graphics.x;
+                let dy = event.global.y - dragTarget.toState.graphics.y;
+                let angle = Math.atan2(dy, dx);
+
+                // Initial arrow is by default at PI, therefore we add PI as an offset
+                dragTarget.rotation = angle + Math.PI;
+
+                let snap = Math.round(dragTarget.angle / (90)) * (90);
+                if (Math.abs(dragTarget.angle - snap) < 5) {
+                    dragTarget.angle = snap;
+                }
+            }
+        }
+
+        function onInitialArrowDragStart(event) {
+            dragTarget = this;
+            app.stage.on('pointermove', onInitialArrowDragMove);
+            mousePos.x = event.global.x;
+            mousePos.y = event.global.y;
+        }
+
+        function onArrowDragStart(event) {
+            dragTarget = this;
+            app.stage.on('pointermove', onArrowDragMove);
+            mousePos.x = event.global.x;
+            mousePos.y = event.global.y;
+        }
+
+        function onDragStart() {
+            dragTarget = this;
+            app.stage.on('pointermove', onDragMove);
+        }
+
+        function onDragEnd() {
+            if (dragTarget) {
+                app.stage.off('pointermove', onDragMove);
+                app.stage.off('pointermove', onArrowDragMove);
+                app.stage.off('pointermove', onLoopArrowDragMove);
+                app.stage.off('pointermove', onInitialArrowDragMove);
+                dragTarget = null;
+            }
+        }
+
+        // Render loop
+
+        let elapsed = 0.0;
+        app.ticker.add((delta) => {
+            elapsed += delta;
+            updateAll();
+        });
+        app.ticker.maxFPS = 60;
+    </script>
+</body>
+
+</html>
