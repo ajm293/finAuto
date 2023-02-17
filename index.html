@@ -28,6 +28,25 @@
             font-size: 1.5rem;
             border-radius: 8px;
         }
+
+        .simulates>div {
+            display: none;
+            margin: 10px 10px 0 10px;
+            vertical-align: middle;
+        }
+
+        .simulates>div input[type=button] {
+            padding: 4px 10px;
+            font-size: 1.5rem;
+            border: 1;
+            border-radius: 8px;
+            background-color: #fff6d0;
+        }
+
+        .simulates>div input[type=text] {
+            font-size: 1.5rem;
+            border-radius: 8px;
+        }
     </style>
 </head>
 
@@ -49,9 +68,20 @@
         <div>
             <input type="button" value="Normal" id="accept" />
         </div>
-
-
+        <div>
+            <input type="button" value=">" id="simulate" />
+        </div>
     </div>
+
+    <div class="simulates">
+        <div>
+            <input type="text" id="wordbox" placeholder="Input word" />
+        </div>
+        <div>
+            <input type="button" value="Step" id="stepOne" />
+        </div>
+    </div>
+
     <script>
 
         // Application constants
@@ -131,7 +161,7 @@
             this.buildTransitionFunction();
 
             this.output = false;
-            this.deterministic = false;
+            this.deterministic = this.isDeterministic();
         }
 
         FA.prototype.stringifyArrow = function (arrow) {
@@ -179,7 +209,7 @@
                 let i = this.q.indexOf(mthArrow.fromState);
 
                 if (mthArrow.label.text == '') {
-                    mthArrow.label.text == '\u03b5';
+                    mthArrow.label.text = '\u03b5';
                 }
 
                 let j = this.sigma.indexOf(mthArrow.label.text);
@@ -690,6 +720,7 @@
                 document.getElementById('inputbox').placeholder = "Nothing selected";
                 document.getElementById('inputbox').disabled = true;
                 document.getElementById('delstate').disabled = true;
+                document.getElementById('accept').disabled = true;
             }
 
             document.getElementById('inputbox').onkeyup = function () {
@@ -721,6 +752,10 @@
                         document.getElementById('accept').value = "Accepting";
                     }
                 }
+            }
+
+            document.getElementById('simulate').onclick = function () {
+                
             }
         }
 
