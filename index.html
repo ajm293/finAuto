@@ -115,6 +115,8 @@
             this.q0 = graph.initialState;
             this.f = graph.acceptingStates;
 
+            this.current = this.q0;
+
             this.q0arrow = this.graph.initialArrow;
             this.arrows = this.collapseArrows(this.graph.transitions);
 
@@ -158,7 +160,7 @@
             // of size MxNxM, where M is |Q| and N is |Sigma|.
             // An element A(i,j,k) in the matrix is an Arrow if there is a
             // transition from State_i for the input symbol Sigma_j, of which it 
-            // is the kth Arrow satisfying those conditions. Otherwise, 
+            // is an Arrow to the State indexed by k. If there is no such Arrow,
             // the element is null.
             this.delta = Array(this.q.length).fill().map(
                 () => Array(this.sigma.length).fill().map(
@@ -166,17 +168,17 @@
                 )
             );
 
-            for (let k = 0; k < this.arrows.length; k++) {
-                let kthArrow = this.arrows[k];
-                let i = this.q.indexOf(kthArrow.fromState);
-                console.log(i);
+            for (let m = 0; m < this.arrows.length; m++) {
+                let mthArrow = this.arrows[m];
+                let i = this.q.indexOf(mthArrow.fromState);
 
-                if (kthArrow.label.text == ''){
-                    kthArrow.label.text == '\u03b5';
+                if (mthArrow.label.text == ''){
+                    mthArrow.label.text == '\u03b5';
                 }
 
-                let j = this.sigma.indexOf(kthArrow.label.text);
-                this.delta[i][j][k] = kthArrow;
+                let j = this.sigma.indexOf(mthArrow.label.text);
+                let k = this.q.indexOf(mthArrow.toState);
+                this.delta[i][j][k] = mthArrow;
             }
         }
 
