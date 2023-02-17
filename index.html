@@ -29,8 +29,11 @@
             border-radius: 8px;
         }
 
-        .simulates>div {
+        .simulates {
             display: none;
+        }
+
+        .simulates>div {
             margin: 10px 10px 0 10px;
             vertical-align: middle;
         }
@@ -52,7 +55,7 @@
 
 <body>
     <div id="app-position"></div>
-    <div class="inputs">
+    <div class="inputs" id="inputs">
         <div>
             <input type="button" value="Add state" id="addstate" />
         </div>
@@ -73,7 +76,10 @@
         </div>
     </div>
 
-    <div class="simulates">
+    <div class="simulates" id="simulates">
+        <div>
+            <input type="button" value="<" id="create" />
+        </div>
         <div>
             <input type="text" id="wordbox" placeholder="Input word" />
         </div>
@@ -755,7 +761,13 @@
             }
 
             document.getElementById('simulate').onclick = function () {
-                
+                document.getElementById('inputs').style.display = "none";
+                document.getElementById('simulates').style.display = "inline-flex";
+            }
+
+            document.getElementById('create').onclick = function () {
+                document.getElementById('inputs').style.display = "inline-flex";
+                document.getElementById('simulates').style.display = "none";
             }
         }
 
