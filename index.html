@@ -84,6 +84,13 @@
             fontSize: 24
         });
 
+        const logoFont = new PIXI.TextStyle({
+            fontFamily: 'Computer Modern Serif',
+            fontStyle: 'italic',
+            fontSize: 36,
+            fill: 0x0000bb
+        });
+
         // Unique object ID, mainly for collapsing arrows
         // https://stackoverflow.com/questions/2020670/javascript-object-id
 
@@ -121,8 +128,7 @@
             this.arrows = this.collapseArrows(this.graph.transitions);
 
             this.delta = null;
-
-            this.input = null;
+            this.buildTransitionFunction();
 
             this.output = false;
             this.deterministic = false;
@@ -160,7 +166,7 @@
             // of size MxNxM, where M is |Q| and N is |Sigma|.
             // An element A(i,j,k) in the matrix is an Arrow if there is a
             // transition from State_i for the input symbol Sigma_j, of which it 
-            // is an Arrow to the State indexed by k. If there is no such Arrow,
+            // is an Arrow to State_k. If there is no such Arrow,
             // the element is null.
             this.delta = Array(this.q.length).fill().map(
                 () => Array(this.sigma.length).fill().map(
@@ -172,7 +178,7 @@
                 let mthArrow = this.arrows[m];
                 let i = this.q.indexOf(mthArrow.fromState);
 
-                if (mthArrow.label.text == ''){
+                if (mthArrow.label.text == '') {
                     mthArrow.label.text == '\u03b5';
                 }
 
@@ -182,12 +188,48 @@
             }
         }
 
+        FA.prototype.stepDeterministic = function (input) {
+            let i = this.q.indexOf(this.current);
+            let j = this.sigma.indexOf(input);
+            if (j == -1) {
+                throw "The input symbol " + input + " is not in the alphabet.";
+                return;
+            }
+            let earliestArrow = this.delta[i][j].find(item => item);
+            if (earliestArrow === undefined) {
+                throw "No transition exists for the input symbol " + input + ". The FA is nondeterministic.";
+                return;
+            }
+            this.current = earliestArrow.toState;
+            return this.current.label.text;
+        }
+
         FA.prototype.isDeterministic = function () {
             // For a finite automaton to be deterministic, every state must
             // have exactly one transition for every symbol in its alphabet.
             // Here, transitions are Arrows and symbols are the associated
             // Arrow.label.text. This is done by iterating over the adjacency
             // matrix.
+
+            let deterministic = true;
+
+            if (this.sigma.length == 1) {
+                deterministic = false;
+            }
+
+            for (let i = 0; i < this.q.length; i++) {
+                for (let j = 0; j < this.sigma.length; j++) { // Ignore empty string
+                    let len = this.delta[i][j].filter(item => item).length;
+                    console.log(len);
+                    if (this.sigma[j] == "\u03b5") {
+                        if (len != 0) deterministic = false;
+                    } else {
+                        if (len != 1) deterministic = false;
+                    }
+                }
+            }
+
+            return deterministic;
         }
 
         // Graph prototypes
@@ -619,6 +661,12 @@
 
         arrowGhost.visible = false;
         app.stage.addChild(arrowGhost);
+
+        let logo = new PIXI.Text("genAuto", logoFont);
+        logo.x = 880;
+        logo.y = 10;
+        logo.alpha = 0.5;
+        app.stage.addChild(logo);
 
 
         function initControls() {
