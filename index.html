@@ -86,6 +86,9 @@
         <div>
             <input type="button" value="Step" id="stepOne" />
         </div>
+        <div>
+            <input type="button" value="Reset" id="resetAuto" />
+        </div>
     </div>
 
     <script>
@@ -99,6 +102,8 @@
         const arrows = [];
 
         var workingGraph = null;
+        
+        var workingAutomaton = null;
 
         // Initialisation
 
@@ -168,6 +173,8 @@
 
             this.output = false;
             this.deterministic = this.isDeterministic();
+
+            this.q0.mark();
         }
 
         FA.prototype.stringifyArrow = function (arrow) {
@@ -224,7 +231,14 @@
             }
         }
 
+        FA.prototype.reset = function () {
+            this.current.redraw();
+            this.current = this.q0;
+            this.q0.mark();
+        }
+
         FA.prototype.stepDeterministic = function (input) {
+            this.current.redraw();
             let i = this.q.indexOf(this.current);
             let j = this.sigma.indexOf(input);
             if (j == -1) {
@@ -237,6 +251,7 @@
                 return;
             }
             this.current = earliestArrow.toState;
+            this.current.mark();
             return this.current.label.text;
         }
 
@@ -333,7 +348,6 @@
                 this.initialArrow = newArrow;
             }
             this.alphabet.push(text);
-            console.log(this.alphabet);
             return newArrow;
         }
 
@@ -352,7 +366,6 @@
 
             if (newLabel == "") newLabel = "\u03b5";
             this.alphabet.push(newLabel);
-            console.log(this.alphabet);
         }
 
         // State prototypes
@@ -794,11 +807,29 @@
             document.getElementById('simulate').onclick = function () {
                 document.getElementById('inputs').style.display = "none";
                 document.getElementById('simulates').style.display = "inline-flex";
+                workingAutomaton = new FA(workingGraph);
             }
 
             document.getElementById('create').onclick = function () {
                 document.getElementById('inputs').style.display = "inline-flex";
                 document.getElementById('simulates').style.display = "none";
+                for (let i = 0; i < workingAutomaton.q.length; i++) {
+                    workingAutomaton.q[i].redraw();
+                }
+                workingAutomaton = null;
+            }
+
+            document.getElementById('stepOne').onclick = function () {
+                if (document.getElementById('wordbox').value != ''){
+                    let inputSymbol = document.getElementById('wordbox').value[0];
+                    workingAutomaton.stepDeterministic(inputSymbol);
+                    document.getElementById('wordbox').value = document.getElementById('wordbox').value.substring(1);
+                }
+            }
+
+            document.getElementById('resetAuto').onclick = function () {
+                document.getElementById('wordbox').value = '';
+                workingAutomaton.reset();
             }
         }
 
