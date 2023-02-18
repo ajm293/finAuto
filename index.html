@@ -254,10 +254,9 @@
             }
 
             for (let i = 0; i < this.q.length; i++) {
-                for (let j = 0; j < this.sigma.length; j++) { // Ignore empty string
+                for (let j = 0; j < this.sigma.length; j++) {
                     let len = this.delta[i][j].filter(item => item).length;
-                    console.log(len);
-                    if (this.sigma[j] == "\u03b5") {
+                    if (this.sigma[j] == "\u03b5") { // Deterministic automata do not have jump arrows
                         if (len != 0) deterministic = false;
                     } else {
                         if (len != 1) deterministic = false;
@@ -416,6 +415,14 @@
 
         State.prototype.focus = function () {
 
+        }
+
+        State.prototype.red = function () {
+
+        }
+
+        State.prototype.green = function () {
+            
         }
 
         // Arrow prototypes
