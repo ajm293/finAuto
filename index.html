@@ -413,16 +413,40 @@
             this.graphics.endFill();
         }
 
+        State.prototype.redraw = function () {
+            this.graphics.clear();
+            this.graphics.lineStyle(2, 0x000000);
+            this.graphics.beginFill(0xffffff);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
+            this.graphics.endFill();
+            if (this.accepting) {
+                this.graphics.lineStyle(2, 0x000000);
+                this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS - 3);
+            }
+        }
+
         State.prototype.focus = function () {
 
         }
 
-        State.prototype.red = function () {
+        State.prototype.mark = function () {
+            if (this.accepting) {
+                this.green();
+            } else {
+                this.red();
+            }
+        }
 
+        State.prototype.red = function () {
+            this.graphics.beginFill(0xdd0000, 0.2);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
+            this.graphics.endFill();
         }
 
         State.prototype.green = function () {
-            
+            this.graphics.beginFill(0x00dd00, 0.2);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
+            this.graphics.endFill();
         }
 
         // Arrow prototypes
