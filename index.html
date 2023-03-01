@@ -165,6 +165,8 @@
 
             this.current = this.q0;
 
+            this.currentSet = new Set();
+
             this.q0arrow = this.graph.initialArrow;
             this.arrows = this.collapseArrows(this.graph.transitions);
 
@@ -235,6 +237,10 @@
             this.current.redraw();
             this.current = this.q0;
             this.q0.mark();
+        }
+
+        FA.prototype.stepNondet = function (input) {
+
         }
 
         FA.prototype.stepDeterministic = function (input) {
