@@ -748,7 +748,7 @@
         arrowGhost.visible = false;
         app.stage.addChild(arrowGhost);
 
-        let logo = new PIXI.Text("genAuto", logoFont);
+        let logo = new PIXI.Text("Create", logoFont);
         logo.x = 880;
         logo.y = 10;
         logo.alpha = 0.5;
@@ -813,12 +813,14 @@
             document.getElementById('simulate').onclick = function () {
                 document.getElementById('inputs').style.display = "none";
                 document.getElementById('simulates').style.display = "inline-flex";
+                logo.text = "Simulate";
                 workingAutomaton = new FA(workingGraph);
             }
 
             document.getElementById('create').onclick = function () {
                 document.getElementById('inputs').style.display = "inline-flex";
                 document.getElementById('simulates').style.display = "none";
+                logo.text = "Create";
                 for (let i = 0; i < workingAutomaton.q.length; i++) {
                     workingAutomaton.q[i].redraw();
                 }
