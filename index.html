@@ -358,6 +358,10 @@
         }
 
         Graph.prototype.removeArrow = function (arrow) {
+            if (arrow = this.initialArrow){
+                this.initialArrow = null;
+                this.initialState = null;
+            }
             this.transitions = this.transitions.filter(item => item !== arrow);
             let index = this.alphabet.indexOf(arrow.label.text);
             this.alphabet.splice(index, 1);
@@ -756,8 +760,11 @@
 
 
         function initControls() {
-            document.getElementById('inputbox').value = null;
-            document.getElementById('inputbox').disabled = true;
+
+            let inputbox = document.getElementById('inputbox');
+
+            inputbox.value = null;
+            inputbox.disabled = true;
             document.getElementById('delstate').disabled = true;
 
             document.getElementById('addstate').onclick = function () {
@@ -772,21 +779,21 @@
                     workingGraph.removeArrow(focusTarget);
                 }
                 focusTarget = null;
-                document.getElementById('inputbox').value = null;
-                document.getElementById('inputbox').placeholder = "Nothing selected";
-                document.getElementById('inputbox').disabled = true;
+                inputbox.value = null;
+                inputbox.placeholder = "Nothing selected";
+                inputbox.disabled = true;
                 document.getElementById('delstate').disabled = true;
                 document.getElementById('accept').disabled = true;
             }
 
-            document.getElementById('inputbox').onkeyup = function () {
+            inputbox.onkeyup = function () {
                 if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
                     if (focusTarget instanceof Arrow) {
                         workingGraph.updateAlphabet(focusTarget.label.text, document.getElementById('inputbox').value);
                     }
-                    focusTarget.label.text = document.getElementById('inputbox').value;
-                    if (document.getElementById('inputbox').value == '') {
-                        document.getElementById('inputbox').placeholder = "Empty string";
+                    focusTarget.label.text = inputbox.value;
+                    if (inputbox.value == '') {
+                        inputbox.placeholder = "Empty string";
                     }
                 }
             }
