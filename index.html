@@ -102,7 +102,7 @@
         const arrows = [];
 
         var workingGraph = null;
-        
+
         var workingAutomaton = null;
 
         // Initialisation
@@ -358,7 +358,7 @@
         }
 
         Graph.prototype.removeArrow = function (arrow) {
-            if (arrow = this.initialArrow){
+            if (arrow = this.initialArrow) {
                 this.initialArrow = null;
                 this.initialState = null;
             }
@@ -818,11 +818,14 @@
             }
 
             document.getElementById('simulate').onclick = function () {
-                document.getElementById('inputs').style.display = "none";
-                document.getElementById('simulates').style.display = "inline-flex";
-                logo.text = "Simulate";
-                workingAutomaton = new FA(workingGraph);
+                if (workingGraph.initialState) {
+                    document.getElementById('inputs').style.display = "none";
+                    document.getElementById('simulates').style.display = "inline-flex";
+                    logo.text = "Simulate";
+                    workingAutomaton = new FA(workingGraph);
+                }
             }
+
 
             document.getElementById('create').onclick = function () {
                 document.getElementById('inputs').style.display = "inline-flex";
@@ -835,7 +838,7 @@
             }
 
             document.getElementById('stepOne').onclick = function () {
-                if (document.getElementById('wordbox').value != ''){
+                if (document.getElementById('wordbox').value != '') {
                     let inputSymbol = document.getElementById('wordbox').value[0];
                     workingAutomaton.stepDeterministic(inputSymbol);
                     document.getElementById('wordbox').value = document.getElementById('wordbox').value.substring(1);
