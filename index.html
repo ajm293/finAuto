@@ -421,7 +421,7 @@
         }
 
         Graph.prototype.removeArrow = function (arrow) {
-            if (arrow = this.initialArrow) {
+            if (arrow == this.initialArrow) {
                 this.initialArrow = null;
                 this.initialState = null;
             }
