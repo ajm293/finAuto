@@ -239,8 +239,55 @@
             this.q0.mark();
         }
 
-        FA.prototype.stepNondet = function (input) {
+        FA.prototype.redrawSet = function () {
 
+        }
+
+        FA.prototype.step = function (input) {
+            if (this.deterministic) {
+                return this.stepDeterministic(input);
+            } else {
+                return this.stepNondet(input);
+            }
+        }
+
+        FA.prototype.stepNondet = function (input) {
+            // Wherever there are multiple choices on which state to transition
+            // to next, the current state becomes the set of all of those choices.
+            // This implements the path-thread blend motivated by section 3.1 of
+            // the survey. Such parallel states could be distinguished by a
+            // different colour following Armoni & Ben Ari, 2009's suggestions.
+            if (this.deterministic) {
+                throw "The FA is deterministic, and so should use stepDeterministic().";
+                return;
+            }
+            this.redrawSet();
+            let j = this.sigma.indexOf(input);
+            if (j == -1) {
+                throw "The input symbol " + input + " is not in the alphabet.";
+                return;
+            }
+            let formerCurrent = [... this.currentSet];
+            let empty = this.sigma.indexOf("\u03b5");
+            this.currentSet.clear();
+            for (let a = 0; a < formerCurrent.length; a++) {
+                let i = this.q.indexOf(formerCurrent[a]);
+                // Process parallel non-jump transitions
+                for (let k = 0; k < this.delta[i][j].length; k++) {
+                    let arrow = this.delta[i][j][k];
+                    if (arrow) {
+                        this.currentSet.add(arrow);
+                    }
+                }
+                // Process jump transitions
+                if (empty != -1) {
+                    for (let k = 0; k < this.delta[i][empty].length; k++) {
+                        if (arrow) {
+                            this.currentSet.add(arrow);
+                        }
+                    }
+                }
+            }
         }
 
         FA.prototype.stepDeterministic = function (input) {
