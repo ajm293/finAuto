@@ -166,6 +166,7 @@
             this.current = this.q0;
 
             this.currentSet = new Set();
+            this.currentSet.add(this.q0);
 
             this.q0arrow = this.graph.initialArrow;
             this.arrows = this.collapseArrows(this.graph.transitions);
@@ -240,7 +241,9 @@
         }
 
         FA.prototype.redrawSet = function () {
-
+            for (const state of this.currentSet){
+                state.redraw();
+            }
         }
 
         FA.prototype.step = function (input) {
@@ -272,22 +275,27 @@
             this.currentSet.clear();
             for (let a = 0; a < formerCurrent.length; a++) {
                 let i = this.q.indexOf(formerCurrent[a]);
+                if (this.delta[i] === undefined) {
+                    continue;
+                }
                 // Process parallel non-jump transitions
                 for (let k = 0; k < this.delta[i][j].length; k++) {
                     let arrow = this.delta[i][j][k];
                     if (arrow) {
-                        this.currentSet.add(arrow);
+                        this.currentSet.add(arrow.toState);
                     }
                 }
                 // Process jump transitions
                 if (empty != -1) {
                     for (let k = 0; k < this.delta[i][empty].length; k++) {
+                        let arrow = this.delta[i][empty][k];
                         if (arrow) {
-                            this.currentSet.add(arrow);
+                            this.currentSet.add(arrow.toState);
                         }
                     }
                 }
             }
+            return this.currentSet;
         }
 
         FA.prototype.stepDeterministic = function (input) {
@@ -888,7 +896,7 @@
             document.getElementById('stepOne').onclick = function () {
                 if (document.getElementById('wordbox').value != '') {
                     let inputSymbol = document.getElementById('wordbox').value[0];
-                    workingAutomaton.stepDeterministic(inputSymbol);
+                    workingAutomaton.step(inputSymbol);
                     document.getElementById('wordbox').value = document.getElementById('wordbox').value.substring(1);
                 }
             }
