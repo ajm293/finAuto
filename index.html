@@ -270,12 +270,13 @@
                 throw "The FA is deterministic, and so should use stepDeterministic().";
                 return;
             }
-            this.redrawSet();
             let j = this.sigma.indexOf(input);
             if (j == -1) {
+                alert("The input symbol " + input + " is not in the alphabet.");
                 throw "The input symbol " + input + " is not in the alphabet.";
                 return;
             }
+            this.redrawSet();
             let formerCurrent = [... this.currentSet];
             let empty = this.sigma.indexOf("\u03b5");
             this.currentSet.clear();
@@ -307,13 +308,14 @@
         }
 
         FA.prototype.stepDeterministic = function (input) {
-            this.current.redraw();
             let i = this.q.indexOf(this.current);
             let j = this.sigma.indexOf(input);
             if (j == -1) {
+                alert("The input symbol " + input + " is not in the alphabet.");
                 throw "The input symbol " + input + " is not in the alphabet.";
                 return;
             }
+            this.current.redraw();
             let earliestArrow = this.delta[i][j].find(item => item);
             if (earliestArrow === undefined) {
                 throw "No transition exists for the input symbol " + input + ". The FA is nondeterministic.";
