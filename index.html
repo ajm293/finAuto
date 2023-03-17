@@ -889,6 +889,8 @@
                     document.getElementById('simulates').style.display = "inline-flex";
                     logo.text = "Simulate";
                     workingAutomaton = new FA(workingGraph);
+                } else {
+                    alert("Automaton needs an initial state.");
                 }
             }
 
