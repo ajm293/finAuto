@@ -143,6 +143,47 @@
             return objMap.get(object);
         }
 
+        // Generic powerset function
+
+        function powerset(q) {
+            var ps = [];
+            for (let i = 0; i < Math.pow(2, q.length); i++) {
+                var innerSet = [];
+                for (let j = 0; j < q.length; j++) {
+                    if ((i & (1 << j)) !== 0) {
+                        innerSet.push(q[j]);
+                    }
+                }
+                ps.push(innerSet);
+            }
+            return ps;
+        }
+
+        // Powerset construction from NFA to DFA
+
+        function epsilonClosure(nfa, states) {
+            var closure = new Set();
+            states.forEach(item => closure.add(item));
+            var stateStack = [...states];
+
+            let ep = nfa.sigma.indexOf('\u03b5');
+
+            while (stateStack.length != 0) {
+                let s = stateStack.pop();
+                let i = nfa.q.indexOf(s);
+                let transition = nfa.delta[i][ep];
+                for (let k = 0; k < transition.length; k++) {
+                    if (transition[k] instanceof Arrow) {
+                        if (!(closure.has(transition[k].toState))) {
+                            stateStack.push(transition[k].toState);
+                            closure.add(transition[k].toState);
+                        }
+                    }
+                }
+            }
+            return closure;
+        }
+
         // ArrowConstructor prototypes
 
         function ArrowConstructor() {
