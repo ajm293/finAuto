@@ -240,7 +240,12 @@
             for (const s of stateSet) {
                 let label = [...s].reduce((a, item) => a + item.label.text + ',', '');
                 label = '{' + label.slice(0, -1) + '}';
-                newGraph.addState(label, Math.random()*1024, Math.random()*576);
+                let newState = newGraph.addState(label, Math.random()*1024, Math.random()*576);
+                let accepting = false;
+                for (const x of s) {
+                    if (x.accepting) accepting = true;
+                }
+                if (accepting) newGraph.makeAccepting(newState);
             }
 
             // Assemble arrows
@@ -260,11 +265,9 @@
             let initial = epsilonClosure(nfa, [nfa.q0]);
             let to = (set) => set.size === initial.size && [...set].every((x) => initial.has(x));
             let initialState = newGraph.states[stateArray.findIndex(to)];
-            console.log(initialState);
             newGraph.addArrow(initialState, initialState, '\u03b5', false, true);
 
-            // Set accepting states
-
+            // Destroy original NFA
             workingGraph.selfDestruct();
             workingGraph = null;
             workingGraph = newGraph;
