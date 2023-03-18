@@ -143,25 +143,12 @@
             return objMap.get(object);
         }
 
-        // Generic powerset function
-
-        function powerset(q) {
-            var ps = [];
-            for (let i = 0; i < Math.pow(2, q.length); i++) {
-                var innerSet = [];
-                for (let j = 0; j < q.length; j++) {
-                    if ((i & (1 << j)) !== 0) {
-                        innerSet.push(q[j]);
-                    }
-                }
-                ps.push(innerSet);
-            }
-            return ps;
-        }
-
-        // Powerset construction from NFA to DFA
+        // Powerset construction functions
 
         function epsilonClosure(nfa, states) {
+            // Finds the epsilon closure E(R) of a set of states R. If the
+            // states array has only one element, it is the epsilon closure
+            // E(q) of q.
             var closure = new Set();
             states.forEach(item => closure.add(item));
             var stateStack = [...states];
@@ -183,6 +170,100 @@
             }
             return closure;
         }
+
+        function deltaGivenR(nfa, stateSet, symbol) {
+            let next = new Set();
+            let j = nfa.sigma.indexOf(symbol);
+            for (const state of stateSet) {
+                let i = nfa.q.indexOf(state);
+                for (const transition of nfa.delta[i][j]) {
+                    if (transition instanceof Arrow) {
+                        next.add(transition.toState);
+                    }
+                }
+            }
+            return next;
+        }
+
+        function pConstruct(nfa) {
+
+            let ep = nfa.sigma.indexOf('\u03b5');
+
+            let q0closure = epsilonClosure(nfa, [nfa.q0]);
+
+            var discovery = [];
+
+            let exploreStack = [];
+            let done = []; // Array of sets
+            exploreStack.push(q0closure);
+
+            let i = 0;
+
+            while (exploreStack.length != 0) { // Graph traversal
+                let current = exploreStack.pop();
+                let originalPath = true;
+                for (const set of done) {
+                    if (eqSet(set, current)){
+                        originalPath = false;
+                        break;
+                    }
+                }
+                if (!originalPath){
+                    continue;
+                }
+                for (let j = 0; j < nfa.sigma.length; j++) {
+                    if (j == ep) {
+                        continue;
+                    }
+                    let result = epsilonClosure(nfa, deltaGivenR(nfa, current, nfa.sigma[j]));
+                    discovery.push([current, j, result]);
+                    exploreStack.push(result);
+                }
+                done.push(current);
+            }
+
+            return discovery;
+        }
+
+        function discoveryToGraph(nfa, discovery) {
+            var newGraph = new Graph();
+
+            var stateSet = new Set();
+            var fromStates = discovery.map(item => item[0]);
+            fromStates.forEach(stateSet.add, stateSet);
+
+            let stateArray = [...stateSet]
+
+            console.log(stateArray);
+
+            for (const s of stateSet) {
+                let label = [...s].reduce((a, item) => a + item.label.text + ',', '');
+                label = '{' + label.slice(0, -1) + '}';
+                newGraph.addState(label, 100, 100);
+            }
+
+            for (const arrow of discovery) {
+                let from = (set) => set.size === arrow[0].size && [...set].every((x) => arrow[0].has(x));
+                let fromState = newGraph.states[stateArray.findIndex(from)];
+                let to = (set) => set.size === arrow[2].size && [...set].every((x) => arrow[2].has(x));
+                let toState = newGraph.states[stateArray.findIndex(to)];
+                let symbol = nfa.sigma[arrow[1]];
+
+                let loop = (fromState == toState);
+
+                newGraph.addArrow(fromState, toState, symbol, loop, false);
+            }
+
+            workingGraph.selfDestruct();
+
+            workingGraph = null;
+
+            workingGraph = newGraph;
+
+            return discovery;
+        }
+
+        const eqSet = (xs, ys) => xs.size === ys.size && [...xs].every((x) => ys.has(x));
 
         // ArrowConstructor prototypes
 
@@ -403,6 +484,10 @@
             this.initialArrow = null;
             this.acceptingStates = [];
             this.alphabet = [];
+        }
+
+        Graph.prototype.selfDestruct = function () {
+            this.states.forEach(item => this.removeState(item));
         }
 
         Graph.prototype.makeAccepting = function (state) {
@@ -978,6 +1063,19 @@
         var a3 = graph.addArrow(q3, q1, "c", false, false);
         var a4 = graph.addArrow(q2, q2, "d", true, false);
         var ainit = graph.addArrow(q1, q1, "e", false, true);**/
+
+        var q1 = graph.addState("1", 400, 300);
+        var q2 = graph.addState("2", 600, 200);
+        var q3 = graph.addState("3", 600, 400);
+
+        graph.addArrow(q1, q2, '\u03b5', false, false);
+        graph.addArrow(q1, q3, 'a', false, false);
+        graph.addArrow(q2, q2, 'b', true, false);
+        graph.addArrow(q3, q3, 'b', true, false);
+        graph.addArrow(q1, q1, '\u03b5', false, true);
+
+        graph.makeAccepting(q2);
+        graph.makeAccepting(q3);
 
         // Event handling functions
 
