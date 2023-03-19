@@ -203,12 +203,12 @@
                 let current = exploreStack.pop();
                 let originalPath = true;
                 for (const set of done) {
-                    if (eqSet(set, current)){
+                    if (eqSet(set, current)) {
                         originalPath = false;
                         break;
                     }
                 }
-                if (!originalPath){
+                if (!originalPath) {
                     continue;
                 }
                 for (let j = 0; j < nfa.sigma.length; j++) {
@@ -234,13 +234,11 @@
 
             let stateArray = [...stateSet]
 
-            console.log(stateArray);
-
             // Assemble states
             for (const s of stateSet) {
                 let label = [...s].reduce((a, item) => a + item.label.text + ',', '');
                 label = '{' + label.slice(0, -1) + '}';
-                let newState = newGraph.addState(label, Math.random()*1024, Math.random()*576);
+                let newState = newGraph.addState(label, Math.random() * 1024, Math.random() * 576);
                 let accepting = false;
                 for (const x of s) {
                     if (x.accepting) accepting = true;
@@ -272,7 +270,7 @@
             workingGraph = null;
             workingGraph = newGraph;
 
-            return discovery;
+            return newGraph;
         }
 
         const eqSet = (xs, ys) => xs.size === ys.size && [...xs].every((x) => ys.has(x));
@@ -381,7 +379,7 @@
         }
 
         FA.prototype.redrawSet = function () {
-            for (const state of this.currentSet){
+            for (const state of this.currentSet) {
                 state.redraw();
             }
         }
@@ -586,6 +584,7 @@
         function State(text, x, y) {
             this.graphics = new PIXI.Graphics();
             this.label = new PIXI.Text(text, cmodern);
+            this.updateLabel(text);
 
             this.initGraphics(x, y);
 
@@ -673,6 +672,16 @@
             this.graphics.beginFill(0x00dd00, 0.2);
             this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
             this.graphics.endFill();
+        }
+
+        State.prototype.updateLabel = function(text) {
+            this.label.text = text;
+            this.label.scale.x = 1;
+            this.label.scale.y = 1;
+            if (this.label.width > 2*STATE_RADIUS-10) {
+                this.label.scale.x = (2*STATE_RADIUS-10) / this.label.width;
+                this.label.scale.y = (2*STATE_RADIUS-10) / this.label.width;
+            }
         }
 
         // Arrow prototypes
@@ -865,6 +874,10 @@
 
         }
 
+        Arrow.prototype.updateLabel = function(text) {
+            this.label.text = text;
+        }
+
         function updateAll() {
             for (let i = 0; i < workingGraph.transitions.length; i++) {
                 workingGraph.transitions[i].update();
@@ -995,7 +1008,7 @@
                     if (focusTarget instanceof Arrow) {
                         workingGraph.updateAlphabet(focusTarget.label.text, document.getElementById('inputbox').value);
                     }
-                    focusTarget.label.text = inputbox.value;
+                    focusTarget.updateLabel(inputbox.value);
                     if (inputbox.value == '') {
                         inputbox.placeholder = "Empty string";
                     }
