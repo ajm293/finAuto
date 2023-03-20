@@ -89,6 +89,9 @@
         <div>
             <input type="button" value="Reset" id="resetAuto" />
         </div>
+        <div>
+            <input type="button" value="To DFA" id="convert" />
+        </div>
     </div>
 
     <script>
@@ -238,7 +241,7 @@
             for (const s of stateSet) {
                 let label = [...s].reduce((a, item) => a + item.label.text + ',', '');
                 label = '{' + label.slice(0, -1) + '}';
-                let newState = newGraph.addState(label, Math.random() * 1024, Math.random() * 576);
+                let newState = newGraph.addState(label, 50 + Math.random() * 900, 50 + Math.random() * 400);
                 let accepting = false;
                 for (const x of s) {
                     if (x.accepting) accepting = true;
@@ -266,11 +269,16 @@
             newGraph.addArrow(initialState, initialState, '\u03b5', false, true);
 
             // Destroy original NFA
-            workingGraph.selfDestruct();
-            workingGraph = null;
-            workingGraph = newGraph;
+            //workingGraph.selfDestruct();
+            //workingGraph = null;
+            //workingGraph = newGraph;
 
             return newGraph;
+        }
+
+        function powerset(nfa) {
+            let dfaGraph = discoveryToGraph(nfa, pConstruct(nfa));
+            return dfaGraph;
         }
 
         const eqSet = (xs, ys) => xs.size === ys.size && [...xs].every((x) => ys.has(x));
@@ -310,6 +318,10 @@
             this.deterministic = this.isDeterministic();
 
             this.q0.mark();
+        }
+
+        FA.prototype.selfDestruct = function () {
+            this.graph.selfDestruct();
         }
 
         FA.prototype.stringifyArrow = function (arrow) {
@@ -1040,6 +1052,11 @@
                     document.getElementById('simulates').style.display = "inline-flex";
                     logo.text = "Simulate";
                     workingAutomaton = new FA(workingGraph);
+                    if (workingAutomaton.deterministic) {
+                        document.getElementById('convert').disabled = true;
+                    } else {
+                        document.getElementById('convert').disabled = false;
+                    }
                 } else {
                     alert("Automaton needs an initial state.");
                 }
@@ -1069,6 +1086,19 @@
             document.getElementById('resetAuto').onclick = function () {
                 document.getElementById('wordbox').value = '';
                 workingAutomaton.reset();
+            }
+
+            document.getElementById('convert').onclick = function () {
+                let dfaGraph = powerset(workingAutomaton);
+                console.log(dfaGraph);
+                if (dfaGraph.states.length > 0) {
+                    workingAutomaton.selfDestruct();
+                    workingGraph = dfaGraph;
+                    workingAutomaton = new FA(workingGraph);
+                } else {
+                    workingAutomaton.selfDestruct();
+                }
+                
             }
         }
 
