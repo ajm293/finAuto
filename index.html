@@ -148,16 +148,47 @@
 
         // Regex parsing functions
 
-        var precedence = {
+        var order = {
             '*' : 0,
             '.' : 1,
             '|' : 2
         };
 
+        var operators = ['*', '.', '|'];
+
+        /**
+         * Turns an infix regex expression into a postfix array of
+         * symbols and operators using the Shunting Yard algorithm.
+         * 
+         * @param {string} string
+         * @returns {Array} outputQueue
+         **/
         function shuntingYard(string) {
             let inputQueue = [...string];
             let opStack = [];
             let outputQueue = [];
+            while (inputQueue.length > 0) {
+                let token = inputQueue.shift();
+                if (operators.includes(token)) {
+                    while (order[opStack[opStack.length - 1]] <= order[token] && opStack.length > 0) {
+                        outputQueue.push(opStack.pop());
+                    }
+                    opStack.push(token);
+                } else if (token === '(') {
+                    opStack.push(token);
+                } else if (token === ')') {
+                    while (opStack[opStack.length - 1] !== '(') {
+                        outputQueue.push(opStack.pop());
+                    }
+                    opStack.pop();
+                } else {
+                    outputQueue.push(token);
+                }
+            }
+            while (opStack.length > 0) {
+                outputQueue.push(opStack.pop());
+            }
+            return outputQueue;
         }
 
         // Powerset construction functions
