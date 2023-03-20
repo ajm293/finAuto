@@ -148,13 +148,13 @@
 
         // Regex parsing functions
 
-        var order = {
+        const order = {
             '*' : 0,
             '.' : 1,
             '|' : 2
         };
 
-        var operators = ['*', '.', '|'];
+        const operators = ['*', '.', '|'];
 
         /**
          * Turns an infix regex expression into a postfix array of
@@ -179,16 +179,50 @@
                 } else if (token === ')') {
                     while (opStack[opStack.length - 1] !== '(') {
                         outputQueue.push(opStack.pop());
+                        if (opStack.length == 0) {
+                            throw "Failed parsing - unbalanced parentheses";
+                            return null;
+                        }
                     }
                     opStack.pop();
                 } else {
                     outputQueue.push(token);
                 }
             }
+            if (opStack.includes('(')){
+                throw "Failed parsing - unbalanced parentheses";
+                return null;
+            }
             while (opStack.length > 0) {
                 outputQueue.push(opStack.pop());
             }
             return outputQueue;
+        }
+
+        const noncats = ['|', '*'];
+
+        function addConcatenations(string) {
+            let input = [...string];
+            let output = '';
+            let lastChar = '|';
+            while (input.length > 0) {
+                if (lastChar == '('){
+                    ;
+                } else if (input[0] == ')') {
+                    ;
+                } else if (lastChar == '*' && !noncats.includes(input[0])) {
+                    output = output + '.';
+                } else if (!noncats.includes(lastChar) && !noncats.includes(input[0])) {
+                    output = output + '.';
+                }
+                lastChar = input.shift();
+                output = output + lastChar;
+            }
+            return output;
+        }
+
+        function thompson(regex) {
+            
         }
 
         // Powerset construction functions
