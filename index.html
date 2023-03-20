@@ -148,10 +148,16 @@
 
         // Powerset construction functions
 
+        /**
+         * Calculates the epsilon closure E(R) of a set of states R
+         * from an input e-NFA. If the states array has only one element,
+         * it is the epsilon closure E(q) of q.
+         * 
+         * @param {FA} nfa
+         * @param states
+         * @returns {Set} closure
+         **/
         function epsilonClosure(nfa, states) {
-            // Finds the epsilon closure E(R) of a set of states R. If the
-            // states array has only one element, it is the epsilon closure
-            // E(q) of q.
             var closure = new Set();
             states.forEach(item => closure.add(item));
             var stateStack = [...states];
@@ -174,6 +180,17 @@
             return closure;
         }
 
+        /**
+         * Calculates the union across r in the stateSet R of all
+         * the transitions in the input e-NFA from r given a symbol
+         * in the NFA's alphabet. Returns the set of states corresponding
+         * to those transitions.
+         * 
+         * @param {FA} nfa
+         * @param {Set} stateSet
+         * @param symbol
+         * @returns {Set} next
+         **/
         function deltaGivenR(nfa, stateSet, symbol) {
             let next = new Set();
             let j = nfa.sigma.indexOf(symbol);
@@ -188,6 +205,14 @@
             return next;
         }
 
+        /**
+         * Converts an e-NFA into an array of transitions called the 'discovery'
+         * where each array entry [R, c, R'] corresponds to a transition in the
+         * DFA equivalent to the input e-NFA.
+         * 
+         * @param {FA} nfa
+         * @returns discovery
+         **/
         function pConstruct(nfa) {
 
             let ep = nfa.sigma.indexOf('\u03b5');
@@ -228,6 +253,14 @@
             return discovery;
         }
 
+        /**
+         * Converts a discovery array into a graph representing a DFA
+         * equivalent to the input NFA.
+         * 
+         * @param {FA} nfa
+         * @param discovery
+         * @returns {Graph} newGraph
+         **/
         function discoveryToGraph(nfa, discovery) {
             var newGraph = new Graph();
 
@@ -268,14 +301,16 @@
             let initialState = newGraph.states[stateArray.findIndex(to)];
             newGraph.addArrow(initialState, initialState, '\u03b5', false, true);
 
-            // Destroy original NFA
-            //workingGraph.selfDestruct();
-            //workingGraph = null;
-            //workingGraph = newGraph;
-
             return newGraph;
         }
 
+        /**
+         * Converts an input FA e-NFA object into a Graph object representing
+         * the equivalent DFA to the input e-NFA.
+         * 
+         * @param {FA} nfa
+         * @returns {Graph} dfaGraph
+         **/
         function powerset(nfa) {
             let dfaGraph = discoveryToGraph(nfa, pConstruct(nfa));
             return dfaGraph;
