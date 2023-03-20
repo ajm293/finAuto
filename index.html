@@ -146,6 +146,20 @@
             return objMap.get(object);
         }
 
+        // Regex parsing functions
+
+        var precedence = {
+            '*' : 0,
+            '.' : 1,
+            '|' : 2
+        };
+
+        function shuntingYard(string) {
+            let inputQueue = [...string];
+            let opStack = [];
+            let outputQueue = [];
+        }
+
         // Powerset construction functions
 
         /**
