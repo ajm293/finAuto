@@ -50,12 +50,37 @@
             font-size: 1.5rem;
             border-radius: 8px;
         }
+
+        .regexes {
+            display: none;
+        }
+
+        .regexes>div {
+            margin: 10px 10px 0 10px;
+            vertical-align: middle;
+        }
+
+        .regexes>div input[type=button] {
+            padding: 4px 10px;
+            font-size: 1.5rem;
+            border: 1;
+            border-radius: 8px;
+            background-color: #fff6d0;
+        }
+
+        .regexes>div input[type=text] {
+            font-size: 1.5rem;
+            border-radius: 8px;
+        }
     </style>
 </head>
 
 <body>
     <div id="app-position"></div>
     <div class="inputs" id="inputs">
+        <div>
+            <input type="button" value="<" id="regex" />
+        </div>
         <div>
             <input type="button" value="Add state" id="addstate" />
         </div>
@@ -94,11 +119,23 @@
         </div>
     </div>
 
+    <div class="regexes" id="regexes">
+        <div>
+            <input type="text" id="regexbox" placeholder="Empty regex" />
+        </div>
+        <div>
+            <input type="button" value="To NFA" id="regToNFA" />
+        </div>
+        <div>
+            <input type="button" value=">" id="create2" />
+        </div>
+    </div>
+
     <script>
 
         // Application constants
 
-        const STATE_RADIUS = 25;
+        const STATE_RADIUS = 30;
         const log = console.log;
 
         const states = [];
@@ -235,20 +272,20 @@
 
             var newGraph = new Graph();
 
-            let start = newGraph.addState(stateCount++, 100, 100);
+            let start = newGraph.addState(stateCount++, 100, 288);
             newGraph.addArrow(start, start, '\u03b5', false, true);
 
             // Rules of Thompson's construction as functions
             function symbol(a) {
-                let from = newGraph.addState(stateCount++, 100, 100);
-                let to = newGraph.addState(stateCount++, 100, 100);
+                let from = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
+                let to = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
                 let arrow = newGraph.addArrow(from, to, a, false, false);
                 return {first: from, last: to};
             }
 
             function union(ns, nt) {
-                let from = newGraph.addState(stateCount++, 100, 100);
-                let to = newGraph.addState(stateCount++, 100, 100);
+                let from = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
+                let to = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
 
                 newGraph.addArrow(from, ns.first, '\u03b5', false, false);
                 newGraph.addArrow(from, nt.first, '\u03b5', false, false);
@@ -267,8 +304,8 @@
             }
 
             function kleene(ns) {
-                let from = newGraph.addState(stateCount++, 100, 100);
-                let to = newGraph.addState(stateCount++, 100, 100);
+                let from = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
+                let to = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
 
                 newGraph.addArrow(from, ns.first, '\u03b5', false, false);
                 newGraph.addArrow(ns.last, to, '\u03b5', false, false);
@@ -278,9 +315,6 @@
 
                 return {first: from, last: to};
             }
-
-            workingGraph.selfDestruct();
-            workingGraph = newGraph;
 
             procStack = [];
 
@@ -305,9 +339,11 @@
                         procStack.push(symbol(token));
                 }
             }
-            newGraph.addArrow(start, procStack[0].first, '\u03b5', false, false);
-            procStack[0].last.makeAccepting();
-            return procStack;
+            if (procStack.length == 1){
+                newGraph.addArrow(start, procStack[0].first, '\u03b5', false, false);
+                procStack[0].last.makeAccepting();
+            }
+            return newGraph;
         }
 
         // Powerset construction functions
@@ -900,8 +936,7 @@
                 this.label.visible = false;
             }
 
-            this.graphics.parallel = 0.5;
-            this.graphics.perpendicular = 0;
+            this.graphics.curve = 0;
 
             this.initGraphics();
 
@@ -949,16 +984,15 @@
             let state1 = this.fromState.graphics;
             let state2 = this.toState.graphics;
 
-            let parallel = this.graphics.parallel;
-            let perpendicular = this.graphics.perpendicular;
+            let curve = this.graphics.curve;
 
             let dx = state1.x - state2.x;
             let dy = state1.y - state2.y;
 
             let distance = Math.sqrt(dx * dx + dy * dy);
 
-            let anchorX = state2.x + dx * parallel - dy * perpendicular / distance;
-            let anchorY = state2.y + dy * parallel + dx * perpendicular / distance;
+            let anchorX = state2.x + dx * 0.5 - dy * curve / distance;
+            let anchorY = state2.y + dy * 0.5 + dx * curve / distance;
 
             let c = circleFromABC(state2.x, state2.y, state1.x, state1.y, anchorX, anchorY);
 
@@ -967,7 +1001,7 @@
             this.graphics.clear();
             this.graphics.lineStyle(2, 0x000000, 1);
 
-            if (perpendicular > 0) {
+            if (curve > 0) {
                 let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
                 let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) + STATE_RADIUS / c.r;
                 this.graphics.arc(
@@ -988,7 +1022,7 @@
 
                 drawArrowhead(this.graphics, ax, ay, -endAngle);
 
-            } else if (perpendicular < 0) {
+            } else if (curve < 0) {
                 let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
                 let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) - STATE_RADIUS / c.r;
                 this.graphics.arc(
@@ -1250,15 +1284,36 @@
                 }
             }
 
-
             document.getElementById('create').onclick = function () {
                 document.getElementById('inputs').style.display = "inline-flex";
                 document.getElementById('simulates').style.display = "none";
+                document.getElementById('regexes').style.display = "none";
                 logo.text = "Create";
                 for (let i = 0; i < workingAutomaton.q.length; i++) {
                     workingAutomaton.q[i].redraw();
                 }
                 workingAutomaton = null;
+            }
+
+            document.getElementById('create2').onclick = function () {
+                document.getElementById('inputs').style.display = "inline-flex";
+                document.getElementById('simulates').style.display = "none";
+                document.getElementById('regexes').style.display = "none";
+                logo.text = "Create";
+            }
+
+            document.getElementById('regex').onclick = function () {
+                document.getElementById('inputs').style.display = "none";
+                document.getElementById('simulates').style.display = "none";
+                document.getElementById('regexes').style.display = "inline-flex";
+                logo.text = "Regex";
+            }
+
+            document.getElementById('regToNFA').onclick = function () {
+                let input = document.getElementById('regexbox').value;
+                let regGraph = thompson(input);
+                workingGraph.selfDestruct();
+                workingGraph = regGraph;
             }
 
             document.getElementById('stepOne').onclick = function () {
@@ -1411,7 +1466,7 @@
         function onArrowDragMove(event) {
             let dy = mousePos.y - event.global.y;
             if (dragTarget) {
-                dragTarget.perpendicular += dy;
+                dragTarget.curve += dy;
                 mousePos.y = event.global.y;
             }
         }
