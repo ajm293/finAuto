@@ -136,10 +136,6 @@
         // Application constants
 
         const STATE_RADIUS = 30;
-        const log = console.log;
-
-        const states = [];
-        const arrows = [];
 
         var workingGraph = null;
 
@@ -826,7 +822,7 @@
 
             this.accepting = false;
 
-            states.push(this);
+            //states.push(this);
 
             return this;
         }
@@ -939,8 +935,6 @@
             this.graphics.curve = 0;
 
             this.initGraphics();
-
-            arrows.push(this);
 
             return this;
         }
