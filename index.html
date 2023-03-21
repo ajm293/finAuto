@@ -199,8 +199,16 @@
             return outputQueue;
         }
 
+        // Operators which are not to be concatenated to
         const noncats = ['|', '*'];
 
+        /**
+         * Adds the concatenation symbol . to a regex string that
+         * doesn't have any in the appropriate locations.
+         * 
+         * @param {string} string
+         * @returns {string} output
+         **/ 
         function addConcatenations(string) {
             let input = [...string];
             let output = '';
@@ -222,7 +230,80 @@
         }
 
         function thompson(regex) {
-            
+            let postfix = shuntingYard(addConcatenations(regex));
+            let stateCount = 0;
+
+            var newGraph = new Graph();
+
+            let start = newGraph.addState(stateCount++, 100, 100);
+
+            function symbol(a) {
+                let from = newGraph.addState(stateCount++, 100, 100);
+                let to = newGraph.addState(stateCount++, 100, 100);
+                let arrow = newGraph.addArrow(from, to, a, false, false);
+                return {first: from, last: to};
+            }
+
+            function union(ns, nt) {
+                let from = newGraph.addState(stateCount++, 100, 100);
+                let to = newGraph.addState(stateCount++, 100, 100);
+
+                newGraph.addArrow(from, ns.first, '\u03b5', false, false);
+                newGraph.addArrow(from, nt.first, '\u03b5', false, false);
+
+                newGraph.addArrow(ns.last, to, '\u03b5', false, false);
+                newGraph.addArrow(nt.last, to, '\u03b5', false, false);
+                return {first: from, last: to};
+            }
+
+            function concatenation(ns, nt) {
+                let from = ns.last;
+                let to = nt.first;
+
+                newGraph.addArrow(from, to, '\u03b5', false, false);
+                return {first: ns.first, last: nt.last};
+            }
+
+            function kleene(ns) {
+                let from = newGraph.addState(stateCount++, 100, 100);
+                let to = newGraph.addState(stateCount++, 100, 100);
+
+                newGraph.addArrow(from, ns.first, '\u03b5', false, false);
+                newGraph.addArrow(ns.last, to, '\u03b5', false, false);
+
+                newGraph.addArrow(ns.last, ns.first, '\u03b5', false, false);
+                newGraph.addArrow(from, to, '\u03b5', false, false);
+
+                return {first: from, last: to};
+            }
+
+            workingGraph.selfDestruct();
+            workingGraph = newGraph;
+
+            procStack = [];
+
+            let op1, op2 = null;
+            for (const token of [...postfix]) {
+                switch(token) {
+                    case '|':
+                        op1 = procStack.pop();
+                        op2 = procStack.pop();
+                        procStack.push(union(op2, op1));
+                        break;
+                    case '.':
+                        op1 = procStack.pop();
+                        op2 = procStack.pop();
+                        procStack.push(concatenation(op2, op1));
+                        break;
+                    case '*':
+                        op1 = procStack.pop();
+                        procStack.push(kleene(op1));
+                        break;
+                    default:
+                        procStack.push(symbol(token));
+                }
+            }
+            return procStack;
         }
 
         // Powerset construction functions
@@ -516,6 +597,10 @@
             } else {
                 return this.stepNondet(input);
             }
+        }
+
+        FA.prototype.jumpFurther = function (state, input) {
+            
         }
 
         FA.prototype.stepNondet = function (input) {
