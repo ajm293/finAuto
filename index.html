@@ -236,7 +236,9 @@
             var newGraph = new Graph();
 
             let start = newGraph.addState(stateCount++, 100, 100);
+            newGraph.addArrow(start, start, '\u03b5', false, true);
 
+            // Rules of Thompson's construction as functions
             function symbol(a) {
                 let from = newGraph.addState(stateCount++, 100, 100);
                 let to = newGraph.addState(stateCount++, 100, 100);
@@ -303,6 +305,8 @@
                         procStack.push(symbol(token));
                 }
             }
+            newGraph.addArrow(start, procStack[0].first, '\u03b5', false, false);
+            procStack[0].last.makeAccepting();
             return procStack;
         }
 
@@ -595,59 +599,44 @@
             if (this.deterministic) {
                 return this.stepDeterministic(input);
             } else {
-                return this.stepNondet(input);
+                return this.stepND(input);
             }
         }
 
-        FA.prototype.jumpFurther = function (state, input) {
-            
-        }
-
-        FA.prototype.stepNondet = function (input) {
-            // Wherever there are multiple choices on which state to transition
-            // to next, the current state becomes the set of all of those choices.
-            // This implements the path-thread blend motivated by section 3.1 of
-            // the survey. Such parallel states could be distinguished by a
-            // different colour following Armoni & Ben Ari, 2009's suggestions.
-            if (this.deterministic) {
-                throw "The FA is deterministic, and so should use stepDeterministic().";
-                return;
-            }
+        FA.prototype.nextStates = function (state, input) {
+            let i = this.q.indexOf(state);
             let j = this.sigma.indexOf(input);
-            if (j == -1) {
+            let next = new Set();
+            for (const transition of this.delta[i][j]) {
+                if (transition instanceof Arrow) {
+                    next.add(transition.toState);
+                }
+            }
+            return next;
+        }
+
+        FA.prototype.stepND = function (input) {
+            // Calculates the new set of current states based on the
+            // epsilon closure of each state in the current states set.
+            // This implements the path-thread blend motivated in section 3.1
+            // of the literature review.
+            if (!this.sigma.includes(input)) {
                 alert("The input symbol " + input + " is not in the alphabet.");
                 throw "The input symbol " + input + " is not in the alphabet.";
                 return;
             }
             this.redrawSet();
-            let formerCurrent = [... this.currentSet];
-            let empty = this.sigma.indexOf("\u03b5");
-            this.currentSet.clear();
-            for (let a = 0; a < formerCurrent.length; a++) {
-                let i = this.q.indexOf(formerCurrent[a]);
-                if (this.delta[i] === undefined) {
-                    continue;
-                }
-                // Process parallel non-jump transitions
-                for (let k = 0; k < this.delta[i][j].length; k++) {
-                    let arrow = this.delta[i][j][k];
-                    if (arrow) {
-                        this.currentSet.add(arrow.toState);
-                        arrow.toState.mark();
-                    }
-                }
-                // Process jump transitions
-                if (empty != -1) {
-                    for (let k = 0; k < this.delta[i][empty].length; k++) {
-                        let arrow = this.delta[i][empty][k];
-                        if (arrow) {
-                            this.currentSet.add(arrow.toState);
-                            arrow.toState.mark();
-                        }
-                    }
-                }
+            let newCurrent = new Set();
+            let nextStates = null;
+            for (const state of epsilonClosure(this, this.currentSet)) {
+                nextStates = epsilonClosure(this, this.nextStates(state, input));
+                nextStates.forEach(item => newCurrent.add(item));
             }
-            return this.currentSet;
+            this.currentSet = newCurrent;
+            for (const state of this.currentSet) {
+                state.mark();
+            }
+            console.log(newCurrent);
         }
 
         FA.prototype.stepDeterministic = function (input) {
