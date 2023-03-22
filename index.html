@@ -269,8 +269,8 @@
 
             var newGraph = new Graph();
 
-            let start = newGraph.addState(stateCount++, 100, 288);
-            newGraph.addArrow(start, start, '\u03b5', false, true);
+            //let start = newGraph.addState(stateCount++, 100, 288);
+            //newGraph.addArrow(start, start, '\u03b5', false, true);
 
             // Rules of Thompson's construction as functions
             function symbol(a) {
@@ -337,7 +337,7 @@
                 }
             }
             if (procStack.length == 1){
-                newGraph.addArrow(start, procStack[0].first, '\u03b5', false, false);
+                newGraph.addArrow(procStack[0].first, procStack[0].first, '\u03b5', false, true);
                 procStack[0].last.makeAccepting();
             }
             return newGraph;
@@ -537,19 +537,23 @@
 
             this.current = this.q0;
 
-            this.currentSet = new Set();
-            this.currentSet.add(this.q0);
-
             this.q0arrow = this.graph.initialArrow;
             this.arrows = this.collapseArrows(this.graph.transitions);
 
             this.delta = null;
             this.buildTransitionFunction();
 
+            this.currentSet = new Set();
+            this.currentSet = epsilonClosure(this, [this.q0]);
+
             this.output = false;
             this.deterministic = this.isDeterministic();
 
-            this.q0.mark();
+            if (this.deterministic) {
+                this.q0.mark();
+            } else {
+                this.currentSet.forEach(item => item.mark());
+            }
         }
 
         FA.prototype.selfDestruct = function () {
@@ -614,12 +618,13 @@
             if (this.deterministic) {
                 this.current.redraw();
                 this.current = this.q0;
+                this.q0.mark();
             } else {
                 this.redrawSet();
                 this.currentSet.clear();
-                this.currentSet.add(this.q0);
+                this.currentSet = epsilonClosure(this, [this.q0]);
+                this.currentSet.forEach(item => item.mark());
             }
-            this.q0.mark();
         }
 
         FA.prototype.redrawSet = function () {
@@ -669,7 +674,7 @@
             for (const state of this.currentSet) {
                 state.mark();
             }
-            console.log(newCurrent);
+            return this.currentSet;
         }
 
         FA.prototype.stepDeterministic = function (input) {
@@ -1339,7 +1344,6 @@
 
             document.getElementById('convert').onclick = function () {
                 let dfaGraph = powerset(workingAutomaton);
-                console.log(dfaGraph);
                 if (dfaGraph.states.length > 0) {
                     workingAutomaton.selfDestruct();
                     workingGraph = dfaGraph;
