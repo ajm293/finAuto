@@ -202,6 +202,7 @@
             let outputQueue = [];
             while (inputQueue.length > 0) {
                 let token = inputQueue.shift();
+                
                 if (operators.includes(token)) {
                     while (order[opStack[opStack.length - 1]] <= order[token] && opStack.length > 0) {
                         outputQueue.push(opStack.pop());
@@ -1202,6 +1203,12 @@
         logo.alpha = 0.5;
         app.stage.addChild(logo);
 
+        let wordTracker = new PIXI.Text('Word: ', cmodern);
+        wordTracker.x = 10;
+        wordTracker.y = 540;
+
+        app.stage.addChild(wordTracker);
+        wordTracker.visible = false;
 
         function initControls() {
 
@@ -1266,6 +1273,7 @@
                 if (workingGraph.initialState) {
                     document.getElementById('inputs').style.display = "none";
                     document.getElementById('simulates').style.display = "inline-flex";
+                    wordTracker.visible = true;
                     logo.text = "Simulate";
                     workingAutomaton = new FA(workingGraph);
                     if (workingAutomaton.deterministic) {
@@ -1287,6 +1295,8 @@
                     workingAutomaton.q[i].redraw();
                 }
                 workingAutomaton = null;
+                wordTracker.text = "Word: "
+                wordTracker.visible = false;
             }
 
             document.getElementById('create2').onclick = function () {
@@ -1315,6 +1325,7 @@
                     let inputSymbol = document.getElementById('wordbox').value[0];
                     workingAutomaton.step(inputSymbol);
                     document.getElementById('wordbox').value = document.getElementById('wordbox').value.substring(1);
+                    wordTracker.text = wordTracker.text += inputSymbol;
                 } else if (!workingAutomaton.deterministic) {
                     workingAutomaton.step('\u03b5');
                 }
@@ -1323,6 +1334,7 @@
             document.getElementById('resetAuto').onclick = function () {
                 document.getElementById('wordbox').value = '';
                 workingAutomaton.reset();
+                wordTracker.text = "Word: "
             }
 
             document.getElementById('convert').onclick = function () {
