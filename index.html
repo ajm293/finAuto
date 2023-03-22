@@ -269,10 +269,8 @@
 
             var newGraph = new Graph();
 
-            //let start = newGraph.addState(stateCount++, 100, 288);
-            //newGraph.addArrow(start, start, '\u03b5', false, true);
-
-            // Rules of Thompson's construction as functions
+            // Rules of Thompson's construction as functions.
+            // Notation according to Aho et al. (2007).
             function symbol(a) {
                 let from = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
                 let to = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
@@ -296,7 +294,8 @@
                 let from = ns.last;
                 let to = nt.first;
 
-                let concatState = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
+                let label = '{' + from.label.text + ',' + to.label.text + '}';
+                let concatState = newGraph.addState(label, 50 + Math.random() * 900, 50 + Math.random() * 400);
 
                 for (const arrow of newGraph.transitions) {
                     if (arrow.toState == from) {
