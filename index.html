@@ -349,6 +349,8 @@
             if (procStack.length == 1){
                 newGraph.addArrow(procStack[0].first, procStack[0].first, '\u03b5', false, true);
                 procStack[0].last.makeAccepting();
+                procStack[0].first.position(100, 288);
+                procStack[0].last.position(924, 288);
             }
             return newGraph;
         }
@@ -512,6 +514,8 @@
             let initialState = newGraph.states[stateArray.findIndex(to)];
             newGraph.addArrow(initialState, initialState, '\u03b5', false, true);
 
+            newGraph.initialState.position(100, 288);
+
             return newGraph;
         }
 
@@ -619,7 +623,7 @@
                 let i = this.q.indexOf(mthArrow.fromState);
 
                 if (mthArrow.label.text == '') {
-                    mthArrow.label.text = '\u03b5';
+                    mthArrow.updateLabel('\u03b5');
                 }
 
                 let j = this.sigma.indexOf(mthArrow.label.text);
@@ -835,6 +839,7 @@
 
         function State(text, x, y) {
             this.graphics = new PIXI.Graphics();
+            this.name = text;
             this.label = new PIXI.Text(text, cmodern);
             this.updateLabel(text);
 
@@ -927,6 +932,7 @@
         }
 
         State.prototype.updateLabel = function(text) {
+            this.name = text;
             this.label.text = text;
             this.label.scale.x = 1;
             this.label.scale.y = 1;
@@ -934,6 +940,13 @@
                 this.label.scale.x = (2*STATE_RADIUS-10) / this.label.width;
                 this.label.scale.y = (2*STATE_RADIUS-10) / this.label.width;
             }
+        }
+
+        State.prototype.position = function(x, y) {
+            this.graphics.x = x;
+            this.graphics.y = y;
+            this.x = x;
+            this.y = y;
         }
 
         // Arrow prototypes
@@ -947,6 +960,9 @@
 
             this.graphics = new PIXI.Graphics();
             this.label = new PIXI.Text(text, cmodern);
+
+            this.symbols = new Set();
+            this.symbols.add(text);
 
             if (initial) {
                 this.label.visible = false;
@@ -1124,6 +1140,8 @@
 
         Arrow.prototype.updateLabel = function(text) {
             this.label.text = text;
+            this.symbols.clear();
+            this.symbols.add(text);
         }
 
         function updateAll() {
@@ -1403,7 +1421,7 @@
 
         function onInputText() {
             if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
-                focusTarget.label.text = document.getElementById('inputbox').value;
+                focusTarget.updateLabel(document.getElementById('inputbox').value);
             }
         }
 
