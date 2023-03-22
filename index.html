@@ -296,7 +296,18 @@
                 let from = ns.last;
                 let to = nt.first;
 
-                newGraph.addArrow(from, to, '\u03b5', false, false);
+                let concatState = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
+
+                for (const arrow of newGraph.transitions) {
+                    if (arrow.toState == from) {
+                        arrow.toState = concatState;
+                    }
+                    if (arrow.fromState == to) {
+                        arrow.fromState = concatState;
+                    }
+                }
+                newGraph.removeState(ns.last);
+                newGraph.removeState(nt.first);
                 return {first: ns.first, last: nt.last};
             }
 
@@ -406,6 +417,10 @@
          * Converts an e-NFA into an array of transitions called the 'discovery'
          * where each array entry [R, c, R'] corresponds to a transition in the
          * DFA equivalent to the input e-NFA.
+         * We avoid always constructing and iterating through the entire powerset
+         * of the NFA's states by traversing the NFA starting from the epsilon
+         * closure of the initial state. In the worst case, the algorithm still
+         * builds the entire powerset, but this is unlikely.
          * 
          * @param {FA} nfa
          * @returns discovery
