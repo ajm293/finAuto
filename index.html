@@ -757,6 +757,12 @@
         }
 
         Graph.prototype.addArrow = function (fromState, toState, text, loop, initial) {
+            for (const arrow of this.transitions){
+                if (fromState == arrow.fromState && toState == arrow.toState && loop == arrow.loop) {
+                    arrow.updateLabel(arrow.label.text + ',' + text);
+                    return arrow;
+                }
+            }
             let newArrow = new Arrow(fromState, toState, text, loop, initial);
             this.transitions.push(newArrow);
             if (initial) {
@@ -775,11 +781,6 @@
             arrow.label.destroy();
             arrow.graphics.destroy(true);
             delete arrow;
-        }
-
-        Graph.prototype.tidyArrows = function () {
-            let endoarrows = [];
-            
         }
 
         // State prototypes
