@@ -555,7 +555,7 @@
             this.current = this.q0;
 
             this.q0arrow = this.graph.initialArrow;
-            this.arrows = this.collapseArrows(this.graph.transitions);
+            this.arrows = this.graph.transitions;
 
             this.delta = null;
             this.buildTransitionFunction();
@@ -582,30 +582,8 @@
         }
 
         FA.prototype.stringifyArrow = function (arrow) {
-            let properties = [objectID(arrow.fromState), objectID(arrow.toState), arrow.label.text];
+            let properties = [objectID(arrow.fromState), objectID(arrow.toState), arrow.symbols];
             return JSON.stringify(properties);
-        }
-
-        FA.prototype.collapseArrows = function (arrows) {
-            // Since there may be multiple functionally equivalent arrows between
-            // two states in a Graph, all except one of these arrows must be removed
-            // to form the FA for a sensible transition function. This is done by
-            // creating a Map from a stringified version of the properties we actually
-            // care about in arrows (fromState, toState, symbol) to the Arrow objects
-            // themselves, and then taking the values of the Map to be our new array
-            // of arrows. Any functionally equivalent arrow properties will become just
-            // one key in the Map, mapping to crucially one Arrow.
-            let tempMap = new Map();
-            for (let i = 0; i < arrows.length; i++) {
-                tempMap.set(
-                    this.stringifyArrow(arrows[i]),
-                    arrows[i]
-                )
-            }
-            let newArrows = Array.from(tempMap.values());
-            newArrows = newArrows.filter(item => item !== this.q0arrow);
-            delete tempMap;
-            return newArrows;
         }
 
         FA.prototype.buildTransitionFunction = function () {
@@ -725,7 +703,6 @@
             this.initialState = null;
             this.initialArrow = null;
             this.acceptingStates = [];
-            this.alphabet = [];
         }
 
         Graph.prototype.selfDestruct = function () {
@@ -786,7 +763,6 @@
                 this.initialState = fromState;
                 this.initialArrow = newArrow;
             }
-            this.alphabet.push(text);
             return newArrow;
         }
 
@@ -796,19 +772,14 @@
                 this.initialState = null;
             }
             this.transitions = this.transitions.filter(item => item !== arrow);
-            let index = this.alphabet.indexOf(arrow.label.text);
-            this.alphabet.splice(index, 1);
             arrow.label.destroy();
             arrow.graphics.destroy(true);
             delete arrow;
         }
 
-        Graph.prototype.updateAlphabet = function (oldLabel, newLabel) {
-            let index = this.alphabet.indexOf(oldLabel);
-            this.alphabet.splice(index, 1);
-
-            if (newLabel == "") newLabel = "\u03b5";
-            this.alphabet.push(newLabel);
+        Graph.prototype.tidyArrows = function () {
+            let endoarrows = [];
+            
         }
 
         // State prototypes
