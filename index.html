@@ -182,9 +182,9 @@
         // Regex parsing functions
 
         const order = {
-            '*' : 0,
-            '.' : 1,
-            '|' : 2
+            '*': 0,
+            '.': 1,
+            '|': 2
         };
 
         const operators = ['*', '.', '|'];
@@ -202,7 +202,7 @@
             let outputQueue = [];
             while (inputQueue.length > 0) {
                 let token = inputQueue.shift();
-                
+
                 if (operators.includes(token)) {
                     while (order[opStack[opStack.length - 1]] <= order[token] && opStack.length > 0) {
                         outputQueue.push(opStack.pop());
@@ -223,7 +223,7 @@
                     outputQueue.push(token);
                 }
             }
-            if (opStack.includes('(')){
+            if (opStack.includes('(')) {
                 throw "Failed parsing - unbalanced parentheses";
                 return null;
             }
@@ -242,13 +242,13 @@
          * 
          * @param {string} string
          * @returns {string} output
-         **/ 
+         **/
         function addConcatenations(string) {
             let input = [...string];
             let output = '';
             let lastChar = '|';
             while (input.length > 0) {
-                if (lastChar == '('){
+                if (lastChar == '(') {
                     ;
                 } else if (input[0] == ')') {
                     ;
@@ -275,7 +275,7 @@
                 let from = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
                 let to = newGraph.addState(stateCount++, 50 + Math.random() * 900, 50 + Math.random() * 400);
                 let arrow = newGraph.addArrow(from, to, a, false, false);
-                return {first: from, last: to};
+                return { first: from, last: to };
             }
 
             function union(ns, nt) {
@@ -287,7 +287,7 @@
 
                 newGraph.addArrow(ns.last, to, '\u03b5', false, false);
                 newGraph.addArrow(nt.last, to, '\u03b5', false, false);
-                return {first: from, last: to};
+                return { first: from, last: to };
             }
 
             function concatenation(ns, nt) {
@@ -307,7 +307,7 @@
                 }
                 newGraph.removeState(ns.last);
                 newGraph.removeState(nt.first);
-                return {first: ns.first, last: nt.last};
+                return { first: ns.first, last: nt.last };
             }
 
             function kleene(ns) {
@@ -320,14 +320,14 @@
                 newGraph.addArrow(ns.last, ns.first, '\u03b5', false, false);
                 newGraph.addArrow(from, to, '\u03b5', false, false);
 
-                return {first: from, last: to};
+                return { first: from, last: to };
             }
 
             procStack = [];
 
             let op1, op2 = null;
             for (const token of [...postfix]) {
-                switch(token) {
+                switch (token) {
                     case '|':
                         op1 = procStack.pop();
                         op2 = procStack.pop();
@@ -346,7 +346,7 @@
                         procStack.push(symbol(token));
                 }
             }
-            if (procStack.length == 1){
+            if (procStack.length == 1) {
                 newGraph.addArrow(procStack[0].first, procStack[0].first, '\u03b5', false, true);
                 procStack[0].last.makeAccepting();
                 procStack[0].first.position(100, 288);
@@ -437,8 +437,6 @@
             let exploreStack = [];
             let done = []; // Array of sets
             exploreStack.push(q0closure);
-
-            let i = 0;
 
             while (exploreStack.length != 0) { // Graph traversal
                 let current = exploreStack.pop();
@@ -548,7 +546,8 @@
             this.graph = graph;
 
             this.q = graph.states;
-            this.sigma = [...new Set(graph.alphabet.concat("\u03b5"))];
+            //this.sigma = [...new Set(graph.alphabet.concat("\u03b5"))];
+            this.sigma = [...this.getSigma(graph)];
 
             this.q0 = graph.initialState;
             this.f = graph.acceptingStates;
@@ -567,11 +566,15 @@
             this.output = false;
             this.deterministic = this.isDeterministic();
 
-            if (this.deterministic) {
-                this.q0.mark();
-            } else {
-                this.currentSet.forEach(item => item.mark());
+            this.currentSet.forEach(item => item.mark());
+        }
+
+        FA.prototype.getSigma = function (graph) {
+            let sigma = new Set();
+            for (const arrow of graph.transitions) {
+                arrow.symbols.forEach(item => sigma.add(item));
             }
+            return sigma;
         }
 
         FA.prototype.selfDestruct = function () {
@@ -624,38 +627,30 @@
 
                 if (mthArrow.label.text == '') {
                     mthArrow.updateLabel('\u03b5');
-                }
+                } // TODO: Update for multiarrow support
 
-                let j = this.sigma.indexOf(mthArrow.label.text);
+                //let j = this.sigma.indexOf(mthArrow.label.text);
                 let k = this.q.indexOf(mthArrow.toState);
-                this.delta[i][j][k] = mthArrow;
+                //this.delta[i][j][k] = mthArrow;
+
+                for (const symbol of mthArrow.symbols) {
+                    let j = this.sigma.indexOf(symbol);
+                    console.log(symbol, this.sigma);
+                    this.delta[i][j][k] = mthArrow;
+                }
             }
         }
 
         FA.prototype.reset = function () {
-            if (this.deterministic) {
-                this.current.redraw();
-                this.current = this.q0;
-                this.q0.mark();
-            } else {
-                this.redrawSet();
-                this.currentSet.clear();
-                this.currentSet = epsilonClosure(this, [this.q0]);
-                this.currentSet.forEach(item => item.mark());
-            }
+            this.redrawSet();
+            this.currentSet.clear();
+            this.currentSet = epsilonClosure(this, [this.q0]);
+            this.currentSet.forEach(item => item.mark());
         }
 
         FA.prototype.redrawSet = function () {
             for (const state of this.currentSet) {
                 state.redraw();
-            }
-        }
-
-        FA.prototype.step = function (input) {
-            if (this.deterministic) {
-                return this.stepDeterministic(input);
-            } else {
-                return this.stepND(input);
             }
         }
 
@@ -671,7 +666,7 @@
             return next;
         }
 
-        FA.prototype.stepND = function (input) {
+        FA.prototype.step = function (input) {
             // Calculates the new set of current states based on the
             // epsilon closure of each state in the current states set.
             // This implements the path-thread blend motivated in section 3.1
@@ -693,25 +688,6 @@
                 state.mark();
             }
             return this.currentSet;
-        }
-
-        FA.prototype.stepDeterministic = function (input) {
-            let i = this.q.indexOf(this.current);
-            let j = this.sigma.indexOf(input);
-            if (j == -1) {
-                alert("The input symbol " + input + " is not in the alphabet.");
-                throw "The input symbol " + input + " is not in the alphabet.";
-                return;
-            }
-            this.current.redraw();
-            let earliestArrow = this.delta[i][j].find(item => item);
-            if (earliestArrow === undefined) {
-                throw "No transition exists for the input symbol " + input + ". The FA is nondeterministic.";
-                return;
-            }
-            this.current = earliestArrow.toState;
-            this.current.mark();
-            return this.current.label.text;
         }
 
         FA.prototype.isDeterministic = function () {
@@ -931,18 +907,18 @@
             this.graphics.endFill();
         }
 
-        State.prototype.updateLabel = function(text) {
+        State.prototype.updateLabel = function (text) {
             this.name = text;
             this.label.text = text;
             this.label.scale.x = 1;
             this.label.scale.y = 1;
-            if (this.label.width > 2*STATE_RADIUS-10) {
-                this.label.scale.x = (2*STATE_RADIUS-10) / this.label.width;
-                this.label.scale.y = (2*STATE_RADIUS-10) / this.label.width;
+            if (this.label.width > 2 * STATE_RADIUS - 10) {
+                this.label.scale.x = (2 * STATE_RADIUS - 10) / this.label.width;
+                this.label.scale.y = (2 * STATE_RADIUS - 10) / this.label.width;
             }
         }
 
-        State.prototype.position = function(x, y) {
+        State.prototype.position = function (x, y) {
             this.graphics.x = x;
             this.graphics.y = y;
             this.x = x;
@@ -962,7 +938,7 @@
             this.label = new PIXI.Text(text, cmodern);
 
             this.symbols = new Set();
-            this.symbols.add(text);
+            this.updateLabel(text);
 
             if (initial) {
                 this.label.visible = false;
@@ -1138,10 +1114,12 @@
 
         }
 
-        Arrow.prototype.updateLabel = function(text) {
+        Arrow.prototype.updateLabel = function (text) {
             this.label.text = text;
             this.symbols.clear();
-            this.symbols.add(text);
+            text.split(',').forEach(item => this.symbols.add(item));
+            this.symbols.delete('');
+            console.log(this.symbols);
         }
 
         function updateAll() {
@@ -1278,7 +1256,7 @@
             inputbox.onkeyup = function () {
                 if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
                     if (focusTarget instanceof Arrow) {
-                        workingGraph.updateAlphabet(focusTarget.label.text, document.getElementById('inputbox').value);
+                        //workingGraph.updateAlphabet(focusTarget.label.text, document.getElementById('inputbox').value);
                     }
                     focusTarget.updateLabel(inputbox.value);
                     if (inputbox.value == '') {
@@ -1383,7 +1361,7 @@
                 } else {
                     workingAutomaton.selfDestruct();
                 }
-                
+
             }
         }
 
