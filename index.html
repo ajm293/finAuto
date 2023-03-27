@@ -613,7 +613,6 @@
 
                 for (const symbol of mthArrow.symbols) {
                     let j = this.sigma.indexOf(symbol);
-                    console.log(symbol, this.sigma);
                     this.delta[i][j][k] = mthArrow;
                 }
             }
@@ -1091,7 +1090,6 @@
             this.symbols.clear();
             text.split(',').forEach(item => this.symbols.add(item));
             this.symbols.delete('');
-            console.log(this.symbols);
         }
 
         function updateAll() {
