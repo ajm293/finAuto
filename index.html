@@ -555,7 +555,7 @@
             this.current = this.q0;
 
             this.q0arrow = this.graph.initialArrow;
-            this.arrows = this.graph.transitions;
+            this.arrows = this.graph.transitions.filter(item => item != this.q0arrow);
 
             this.delta = null;
             this.buildTransitionFunction();
@@ -671,7 +671,7 @@
             // For a finite automaton to be deterministic, every state must
             // have exactly one transition for every symbol in its alphabet.
             // Here, transitions are Arrows and symbols are the associated
-            // Arrow.label.text. This is done by iterating over the adjacency
+            // Arrow.symbols. This is done by iterating over the adjacency
             // matrix.
 
             let deterministic = true;
@@ -793,8 +793,6 @@
             this.initGraphics(x, y);
 
             this.accepting = false;
-
-            //states.push(this);
 
             return this;
         }
@@ -1328,9 +1326,11 @@
                     workingAutomaton.selfDestruct();
                     workingGraph = dfaGraph;
                     workingAutomaton = new FA(workingGraph);
+                    workingAutomaton.reset();
                 } else {
                     workingAutomaton.selfDestruct();
                 }
+                document.getElementById('convert').disabled = true;
 
             }
         }
