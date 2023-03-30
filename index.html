@@ -331,15 +331,27 @@
                     case '|':
                         op1 = procStack.pop();
                         op2 = procStack.pop();
+                        if (op1 === undefined || op2 === undefined) {
+                            alert("Error processing regex - Not enough operands for |.");
+                            return null;
+                        }
                         procStack.push(union(op2, op1));
                         break;
                     case '.':
                         op1 = procStack.pop();
                         op2 = procStack.pop();
+                        if (op1 === undefined || op2 === undefined) {
+                            alert("Error processing regex - Not enough operands for concatenation.");
+                            return null;
+                        }
                         procStack.push(concatenation(op2, op1));
                         break;
                     case '*':
                         op1 = procStack.pop();
+                        if (op1 === undefined) {
+                            alert("Error processing regex - Not enough operands for *.");
+                            return null;
+                        }
                         procStack.push(kleene(op1));
                         break;
                     default:
@@ -1221,7 +1233,7 @@
                 document.getElementById('accept').disabled = true;
             }
 
-            inputbox.onkeyup = function () {
+            inputbox.oninput = function () {
                 if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
                     if (focusTarget instanceof Arrow) {
                         //workingGraph.updateAlphabet(focusTarget.label.text, document.getElementById('inputbox').value);
@@ -1259,6 +1271,7 @@
                     wordTracker.visible = true;
                     logo.text = "Simulate";
                     workingAutomaton = new FA(workingGraph);
+                    document.getElementById('stepOne').disabled = true;
                     if (workingAutomaton.deterministic) {
                         document.getElementById('convert').disabled = true;
                     } else {
@@ -1299,8 +1312,17 @@
             document.getElementById('regToNFA').onclick = function () {
                 let input = document.getElementById('regexbox').value;
                 let regGraph = thompson(input);
+                if (regGraph === null) return;
                 workingGraph.selfDestruct();
                 workingGraph = regGraph;
+            }
+
+            document.getElementById('wordbox').oninput = function () {
+                if (document.getElementById('wordbox').value == '') {
+                    document.getElementById('stepOne').disabled = true;
+                } else {
+                    document.getElementById('stepOne').disabled = false;
+                }
             }
 
             document.getElementById('stepOne').onclick = function () {
@@ -1309,13 +1331,15 @@
                     workingAutomaton.step(inputSymbol);
                     document.getElementById('wordbox').value = document.getElementById('wordbox').value.substring(1);
                     wordTracker.text = wordTracker.text += inputSymbol;
-                } else if (!workingAutomaton.deterministic) {
-                    workingAutomaton.step('\u03b5');
+                }
+                if (document.getElementById('wordbox').value.length == 0) {
+                    document.getElementById('stepOne').disabled = true;
                 }
             }
 
             document.getElementById('resetAuto').onclick = function () {
                 document.getElementById('wordbox').value = '';
+                document.getElementById('stepOne').disabled = true;
                 workingAutomaton.reset();
                 wordTracker.text = "Word: "
             }
@@ -1341,16 +1365,6 @@
 
         var graph = new Graph();
         workingGraph = graph;
-
-        /**var q1 = graph.addState("1");
-        var q2 = graph.addState("2");
-        var q3 = graph.addState("3");
-
-        var a1 = graph.addArrow(q1, q2, "a", false, false);
-        var a2 = graph.addArrow(q2, q3, "b", false, false);
-        var a3 = graph.addArrow(q3, q1, "c", false, false);
-        var a4 = graph.addArrow(q2, q2, "d", true, false);
-        var ainit = graph.addArrow(q1, q1, "e", false, true);**/
 
         var q1 = graph.addState("1", 400, 300);
         var q2 = graph.addState("2", 600, 200);
