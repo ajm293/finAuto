@@ -1158,7 +1158,7 @@
         var creatingArrow = null;
         var addingState = false;
 
-        let bg = new PIXI.Sprite(); // Invisible sprite for defocusing
+        let bg = new PIXI.Sprite(); // Invisible sprite for deselecting
         bg.width = app.screen.width;
         bg.height = app.screen.height;
 
@@ -1208,18 +1208,28 @@
         function initControls() {
 
             let inputbox = document.getElementById('inputbox');
+            let wordbox = document.getElementById('wordbox');
+
+            let delstate = document.getElementById('delstate');
+            let addstate = document.getElementById('addstate');
+
+            let addarrow = document.getElementById('addarrow');
+
+            let acceptingButton = document.getElementById('accept');
 
             inputbox.value = null;
             inputbox.disabled = true;
-            document.getElementById('delstate').disabled = true;
-            document.getElementById('wordbox').value = null;
+            delstate.disabled = true;
+            wordbox.value = null;
 
-            document.getElementById('addstate').onclick = function () {
+            // Create mode UI elements
+
+            addstate.onclick = function () {
                 addingState = true;
                 stateGhost.visible = true;
             }
 
-            document.getElementById('delstate').onclick = function () {
+            delstate.onclick = function () {
                 if (focusTarget instanceof State) {
                     workingGraph.removeState(focusTarget);
                 } else if (focusTarget instanceof Arrow) {
@@ -1229,8 +1239,8 @@
                 inputbox.value = null;
                 inputbox.placeholder = "Nothing selected";
                 inputbox.disabled = true;
-                document.getElementById('delstate').disabled = true;
-                document.getElementById('accept').disabled = true;
+                delstate.disabled = true;
+                acceptingButton.disabled = true;
             }
 
             inputbox.oninput = function () {
@@ -1245,24 +1255,26 @@
                 }
             }
 
-            document.getElementById('addarrow').onclick = function () {
-                if (workingGraph.states[0]) {
+            addarrow.onclick = function () {
+                if (workingGraph.states[0] && creatingArrow === null) {
                     creatingArrow = new ArrowConstructor();
                     arrowGhost.visible = true;
                 }
             }
 
-            document.getElementById('accept').onclick = function () {
+            acceptingButton.onclick = function () {
                 if (focusTarget instanceof State) {
                     if (focusTarget.accepting) {
                         workingGraph.removeAcception(focusTarget);
-                        document.getElementById('accept').value = "Normal";
+                        acceptingButton.value = "Normal";
                     } else {
                         workingGraph.makeAccepting(focusTarget);
-                        document.getElementById('accept').value = "Accepting";
+                        acceptingButton.value = "Accepting";
                     }
                 }
             }
+
+            // Mode switching
 
             document.getElementById('simulate').onclick = function () {
                 if (workingGraph.initialState) {
@@ -1309,6 +1321,8 @@
                 logo.text = "Regex";
             }
 
+            // Regex mode UI elements
+
             document.getElementById('regToNFA').onclick = function () {
                 let input = document.getElementById('regexbox').value;
                 let regGraph = thompson(input);
@@ -1316,9 +1330,11 @@
                 workingGraph.selfDestruct();
                 workingGraph = regGraph;
             }
+            
+            // Simulate mode UI elements
 
-            document.getElementById('wordbox').oninput = function () {
-                if (document.getElementById('wordbox').value == '') {
+            wordbox.oninput = function () {
+                if (wordbox.value == '') {
                     document.getElementById('stepOne').disabled = true;
                 } else {
                     document.getElementById('stepOne').disabled = false;
@@ -1326,19 +1342,19 @@
             }
 
             document.getElementById('stepOne').onclick = function () {
-                if (document.getElementById('wordbox').value != '') {
-                    let inputSymbol = document.getElementById('wordbox').value[0];
+                if (wordbox.value != '') {
+                    let inputSymbol = wordbox.value[0];
                     workingAutomaton.step(inputSymbol);
-                    document.getElementById('wordbox').value = document.getElementById('wordbox').value.substring(1);
+                    wordbox.value = wordbox.value.substring(1);
                     wordTracker.text = wordTracker.text += inputSymbol;
                 }
-                if (document.getElementById('wordbox').value.length == 0) {
+                if (wordbox.value.length == 0) {
                     document.getElementById('stepOne').disabled = true;
                 }
             }
 
             document.getElementById('resetAuto').onclick = function () {
-                document.getElementById('wordbox').value = '';
+                wordbox.value = '';
                 document.getElementById('stepOne').disabled = true;
                 workingAutomaton.reset();
                 wordTracker.text = "Word: "
@@ -1391,7 +1407,7 @@
             focusTarget = this;
 
             if (addingState) {
-                workingGraph.addState("new", event.global.x, event.global.y);
+                workingGraph.addState(workingGraph.states.length+1, event.global.x, event.global.y);
                 addingState = false;
                 stateGhost.visible = false;
             }
@@ -1422,7 +1438,7 @@
                     creatingArrow.fromState = focusTarget;
                     arrowGhost.text = "Click on finishing state.";
                     return;
-                } else if ((focusTarget == bg) && !creatingArrow.initial) { // Stage 1 for initial arrow
+                } else if ((focusTarget == bg) && !creatingArrow.initial && !creatingArrow.fromState) { // Stage 1 for initial arrow
                     creatingArrow.initial = true;
                     arrowGhost.text = "Click on initial state.";
                     return;
