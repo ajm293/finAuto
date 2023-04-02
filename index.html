@@ -141,6 +141,10 @@
 
         var workingAutomaton = null;
 
+        var regexParser = new RegexParser();
+
+        var psConstructor = new PSConstructor();
+
         // Initialisation
 
         let app = new PIXI.Application({
@@ -181,13 +185,15 @@
 
         // Regex parsing functions
 
-        const order = {
-            '*': 0,
-            '.': 1,
-            '|': 2
-        };
-
-        const operators = ['*', '.', '|'];
+        function RegexParser() {
+            this.order = {
+                '*': 0,
+                '.': 1,
+                '|': 2
+            };
+            this.operators = ['*', '.', '|'];
+            this.noncats = ['|', '*'];
+        }
 
         /**
          * Turns an infix regex expression into a postfix array of
@@ -196,15 +202,15 @@
          * @param {string} string
          * @returns {Array} outputQueue
          **/
-        function shuntingYard(string) {
+        RegexParser.prototype.shuntingYard = function (string) {
             let inputQueue = [...string];
             let opStack = [];
             let outputQueue = [];
             while (inputQueue.length > 0) {
                 let token = inputQueue.shift();
 
-                if (operators.includes(token)) {
-                    while (order[opStack[opStack.length - 1]] <= order[token] && opStack.length > 0) {
+                if (this.operators.includes(token)) {
+                    while (this.order[opStack[opStack.length - 1]] <= this.order[token] && opStack.length > 0) {
                         outputQueue.push(opStack.pop());
                     }
                     opStack.push(token);
@@ -233,9 +239,6 @@
             return outputQueue;
         }
 
-        // Operators which are not to be concatenated to
-        const noncats = ['|', '*'];
-
         /**
          * Adds the concatenation symbol . to a regex string that
          * doesn't have any in the appropriate locations.
@@ -243,7 +246,7 @@
          * @param {string} string
          * @returns {string} output
          **/
-        function addConcatenations(string) {
+        RegexParser.prototype.addConcatenations = function (string) {
             let input = [...string];
             let output = '';
             let lastChar = '|';
@@ -252,9 +255,9 @@
                     ;
                 } else if (input[0] == ')') {
                     ;
-                } else if (lastChar == '*' && !noncats.includes(input[0])) {
+                } else if (lastChar == '*' && !this.noncats.includes(input[0])) {
                     output = output + '.';
-                } else if (!noncats.includes(lastChar) && !noncats.includes(input[0])) {
+                } else if (!this.noncats.includes(lastChar) && !this.noncats.includes(input[0])) {
                     output = output + '.';
                 }
                 lastChar = input.shift();
@@ -263,8 +266,8 @@
             return output;
         }
 
-        function thompson(regex) {
-            let postfix = shuntingYard(addConcatenations(regex));
+        RegexParser.prototype.thompson = function(regex) {
+            let postfix = this.shuntingYard(this.addConcatenations(regex));
             let stateCount = 0;
 
             var newGraph = new Graph();
@@ -367,8 +370,6 @@
             return newGraph;
         }
 
-        // Powerset construction functions
-
         /**
          * Calculates the epsilon closure E(R) of a set of states R
          * from an input e-NFA. If the states array has only one element,
@@ -401,6 +402,12 @@
             return closure;
         }
 
+        // Powerset construction functions
+
+        function PSConstructor() {
+
+        }
+
         /**
          * Calculates the union across r in the stateSet R of all
          * the transitions in the input e-NFA from r given a symbol
@@ -412,7 +419,7 @@
          * @param symbol
          * @returns {Set} next
          **/
-        function deltaGivenR(nfa, stateSet, symbol) {
+        PSConstructor.prototype.deltaGivenR = function (nfa, stateSet, symbol) {
             let next = new Set();
             let j = nfa.sigma.indexOf(symbol);
             for (const state of stateSet) {
@@ -425,6 +432,7 @@
             }
             return next;
         }
+        
 
         /**
          * Converts an e-NFA into an array of transitions called the 'discovery'
@@ -438,7 +446,7 @@
          * @param {FA} nfa
          * @returns discovery
          **/
-        function pConstruct(nfa) {
+        PSConstructor.prototype.pConstruct = function (nfa) {
 
             let ep = nfa.sigma.indexOf('\u03b5');
 
@@ -466,7 +474,7 @@
                     if (j == ep) {
                         continue;
                     }
-                    let result = epsilonClosure(nfa, deltaGivenR(nfa, current, nfa.sigma[j]));
+                    let result = epsilonClosure(nfa, this.deltaGivenR(nfa, current, nfa.sigma[j]));
                     discovery.push([current, j, result]);
                     exploreStack.push(result);
                 }
@@ -484,7 +492,7 @@
          * @param discovery
          * @returns {Graph} newGraph
          **/
-        function discoveryToGraph(nfa, discovery) {
+        PSConstructor.prototype.discoveryToGraph = function (nfa, discovery) {
             var newGraph = new Graph();
 
             var stateSet = new Set();
@@ -536,8 +544,8 @@
          * @param {FA} nfa
          * @returns {Graph} dfaGraph
          **/
-        function powerset(nfa) {
-            let dfaGraph = discoveryToGraph(nfa, pConstruct(nfa));
+        PSConstructor.prototype.getPowersetGraph = function (nfa) {
+            let dfaGraph = this.discoveryToGraph(nfa, this.pConstruct(nfa));
             return dfaGraph;
         }
 
@@ -768,7 +776,7 @@
         }
 
         Graph.prototype.addArrow = function (fromState, toState, text, loop, initial) {
-            for (const arrow of this.transitions){
+            for (const arrow of this.transitions) {
                 if (fromState == arrow.fromState && toState == arrow.toState && loop == arrow.loop) {
                     arrow.updateLabel(arrow.label.text + ',' + text);
                     return arrow;
@@ -1325,12 +1333,12 @@
 
             document.getElementById('regToNFA').onclick = function () {
                 let input = document.getElementById('regexbox').value;
-                let regGraph = thompson(input);
+                let regGraph = regexParser.thompson(input);
                 if (regGraph === null) return;
                 workingGraph.selfDestruct();
                 workingGraph = regGraph;
             }
-            
+
             // Simulate mode UI elements
 
             wordbox.oninput = function () {
@@ -1361,7 +1369,7 @@
             }
 
             document.getElementById('convert').onclick = function () {
-                let dfaGraph = powerset(workingAutomaton);
+                let dfaGraph = psConstructor.getPowersetGraph(workingAutomaton);
                 if (dfaGraph.states.length > 0) {
                     workingAutomaton.selfDestruct();
                     workingGraph = dfaGraph;
@@ -1407,7 +1415,7 @@
             focusTarget = this;
 
             if (addingState) {
-                workingGraph.addState(workingGraph.states.length+1, event.global.x, event.global.y);
+                workingGraph.addState(workingGraph.states.length + 1, event.global.x, event.global.y);
                 addingState = false;
                 stateGhost.visible = false;
             }
