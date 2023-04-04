@@ -172,6 +172,13 @@
             fill: 0x0000bb
         });
 
+        const acceptFont = new PIXI.TextStyle({
+            fontFamily: 'serif',
+            fontStyle: 'italic',
+            fontSize: 24,
+            fill: 0x00bb00
+        });
+
         // Unique object ID, mainly for collapsing arrows
         // https://stackoverflow.com/questions/2020670/javascript-object-id
 
@@ -192,7 +199,7 @@
                 '|': 2
             };
             this.operators = ['*', '.', '|'];
-            this.noncats = ['|', '*'];
+            this.noncats = ['|', '*', '.'];
         }
 
         /**
@@ -587,6 +594,8 @@
             this.deterministic = this.isDeterministic();
 
             this.currentSet.forEach(item => item.mark());
+
+            this.accepting = this.isAccepting();
         }
 
         FA.prototype.getSigma = function (graph) {
@@ -643,6 +652,7 @@
             this.currentSet.clear();
             this.currentSet = epsilonClosure(this, [this.q0]);
             this.currentSet.forEach(item => item.mark());
+            this.accepting = this.isAccepting();
         }
 
         FA.prototype.redrawSet = function () {
@@ -684,7 +694,18 @@
             for (const state of this.currentSet) {
                 state.mark();
             }
-            return this.currentSet;
+            return this.isAccepting();
+        }
+
+        FA.prototype.isAccepting = function () {
+            this.accepting = false;
+            for (const state of this.currentSet) {
+                if (state.accepting) {
+                    this.accepting = true;
+                    break;
+                }
+            }
+            return this.accepting;
         }
 
         FA.prototype.isDeterministic = function () {
@@ -1213,6 +1234,14 @@
         app.stage.addChild(wordTracker);
         wordTracker.visible = false;
 
+        let acceptTracker = new PIXI.Text('Accepting', acceptFont);
+        acceptTracker.x = 900;
+        acceptTracker.y = 540;
+        acceptTracker.fill = 0x00bb00;
+
+        app.stage.addChild(acceptTracker);
+        acceptTracker.visible = false;
+
         function initControls() {
 
             let inputbox = document.getElementById('inputbox');
@@ -1297,6 +1326,11 @@
                     } else {
                         document.getElementById('convert').disabled = false;
                     }
+                    if (workingAutomaton.accepting) {
+                        acceptTracker.visible = true;
+                    } else {
+                        acceptTracker.visible = false;
+                    }
                 } else {
                     alert("Automaton needs an initial state.");
                 }
@@ -1313,6 +1347,7 @@
                 workingAutomaton = null;
                 wordTracker.text = "Word: "
                 wordTracker.visible = false;
+                acceptTracker.visible = false;
             }
 
             document.getElementById('create2').onclick = function () {
@@ -1353,6 +1388,11 @@
                 if (wordbox.value != '') {
                     let inputSymbol = wordbox.value[0];
                     workingAutomaton.step(inputSymbol);
+                    if (workingAutomaton.accepting) {
+                        acceptTracker.visible = true;
+                    } else {
+                        acceptTracker.visible = false;
+                    }
                     wordbox.value = wordbox.value.substring(1);
                     wordTracker.text = wordTracker.text += inputSymbol;
                 }
@@ -1366,6 +1406,11 @@
                 document.getElementById('stepOne').disabled = true;
                 workingAutomaton.reset();
                 wordTracker.text = "Word: "
+                if (workingAutomaton.accepting) {
+                    acceptTracker.visible = true;
+                } else {
+                    acceptTracker.visible = false;
+                }
             }
 
             document.getElementById('convert').onclick = function () {
@@ -1375,6 +1420,12 @@
                     workingGraph = dfaGraph;
                     workingAutomaton = new FA(workingGraph);
                     workingAutomaton.reset();
+                    wordTracker.text = "Word: ";
+                    if (workingAutomaton.accepting) {
+                        acceptTracker.visible = true;
+                    } else {
+                        acceptTracker.visible = false;
+                    }
                 } else {
                     workingAutomaton.selfDestruct();
                 }
