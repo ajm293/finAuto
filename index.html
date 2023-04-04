@@ -179,18 +179,7 @@
             fill: 0x00bb00
         });
 
-        // Unique object ID, mainly for collapsing arrows
-        // https://stackoverflow.com/questions/2020670/javascript-object-id
-
-        var objMap = new WeakMap();
-        var objCount = 0;
-
-        function objectID(object) {
-            if (!objMap.has(object)) objMap.set(object, ++objCount);
-            return objMap.get(object);
-        }
-
-        // Regex parsing functions
+        // Regex parsing prototypes
 
         function RegexParser() {
             this.order = {
@@ -608,11 +597,6 @@
 
         FA.prototype.selfDestruct = function () {
             this.graph.selfDestruct();
-        }
-
-        FA.prototype.stringifyArrow = function (arrow) {
-            let properties = [objectID(arrow.fromState), objectID(arrow.toState), arrow.symbols];
-            return JSON.stringify(properties);
         }
 
         FA.prototype.buildTransitionFunction = function () {
