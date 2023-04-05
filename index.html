@@ -179,6 +179,74 @@
             fill: 0x00bb00
         });
 
+        function nfaToRegex(nfa) {
+            if (nfa.acceptingStates.length == 0) {
+                alert("Warning - NFA has no accepting states");
+                return '';
+            }
+            if (nfa.initialArrow == null) {
+                alert("Warning - NFA has no initial state");
+                return '';
+            }
+            let originalStates = [...nfa.states];
+
+            let start = nfa.addState("start", 100, 288);
+            let end = nfa.addState("end", 924, 288);
+
+            let lastArrow = null;
+
+            nfa.addArrow(start, nfa.initialState, '\u03b5', false, false);
+            nfa.addArrow(start, start, '\u03b5', false, true);
+            for (const state of nfa.acceptingStates) {
+                console.log(state);
+                nfa.addArrow(state, end, '\u03b5', false, false);
+                nfa.removeAcception(state);
+            }
+            nfa.makeAccepting(end);
+
+            for (const arrow of nfa.transitions) {
+                if (arrow.symbols.size > 1) {
+                    arrow.updateLabel("(" + [...arrow.symbols].join("|") + ")");
+                }
+            }
+
+            for (const state of originalStates) {
+                let connectedArrows = nfa.getConnectedArrows(state);
+                let toArrows = [];
+                let fromArrows = [];
+                let selfLoop = false;
+                for (const arrow of connectedArrows) {
+                    if (arrow.initial) continue;
+                    if (arrow.toState == state && !arrow.loop) toArrows.push(arrow);
+                    if (arrow.fromState == state && !arrow.loop) fromArrows.push(arrow);
+                    if (arrow.loop) selfLoop = arrow;
+                }
+                for (const A of toArrows) {
+                    for (const B of fromArrows) {
+                        let strToAdd = '';
+                        if (selfLoop) {
+                            strToAdd = (A.label.text != '\u03b5' ? A.label.text : '')
+                                + selfLoop.label.text + "*" + (B.label.text != '\u03b5' ? B.label.text : '');
+                        } else {
+                            strToAdd = (A.label.text != '\u03b5' ? A.label.text : '') + (B.label.text != '\u03b5' ? B.label.text : '');
+                        }
+                        lastArrow = nfa.addArrow(A.fromState, B.toState, strToAdd, (A.fromState == B.toState), false);
+                    }
+                }
+                nfa.removeState(state);
+                for (const arrow of nfa.transitions) {
+                    if (arrow.symbols.size > 1) {
+                        arrow.updateLabel("(" + [...arrow.symbols].join("|") + ")");
+                    }
+                }
+            }
+            if (nfa.transitions.length == 2) {
+                return lastArrow.label.text;
+            } else {
+                alert("Error while converting - Failed to condense to one transition.");
+            }
+        }
+
         // Regex parsing prototypes
 
         function RegexParser() {
@@ -262,7 +330,7 @@
             return output;
         }
 
-        RegexParser.prototype.thompson = function(regex) {
+        RegexParser.prototype.thompson = function (regex) {
             let postfix = this.shuntingYard(this.addConcatenations(regex));
             let stateCount = 0;
 
@@ -359,7 +427,7 @@
             }
             if (procStack.length == 1) {
                 newGraph.addArrow(procStack[0].first, procStack[0].first, '\u03b5', false, true);
-                procStack[0].last.makeAccepting();
+                newGraph.makeAccepting(procStack[0].last);
                 procStack[0].first.position(100, 288);
                 procStack[0].last.position(924, 288);
             }
@@ -428,7 +496,7 @@
             }
             return next;
         }
-        
+
 
         /**
          * Converts an e-NFA into an array of transitions called the 'discovery'
@@ -763,14 +831,15 @@
 
         Graph.prototype.removeState = function (state) {
             this.states = this.states.filter(item => item !== state);
+            this.acceptingStates = this.acceptingStates.filter(item => item !== state);
 
-            let arrowsToRemove = []
+            let arrowsToRemove = this.getConnectedArrows(state);
 
-            for (let i = 0; i < this.transitions.length; i++) {
+            /**for (let i = 0; i < this.transitions.length; i++) {
                 if ((this.transitions[i].fromState == state) || (this.transitions[i].toState == state)) {
                     arrowsToRemove.push(this.transitions[i]);
                 }
-            }
+            }**/
 
             for (let i = 0; i < arrowsToRemove.length; i++) {
                 this.removeArrow(arrowsToRemove[i]);
@@ -780,9 +849,19 @@
             delete state;
         }
 
+        Graph.prototype.getConnectedArrows = function (state) {
+            let connectedArrows = [];
+            for (let i = 0; i < this.transitions.length; i++) {
+                if ((this.transitions[i].fromState == state) || (this.transitions[i].toState == state)) {
+                    connectedArrows.push(this.transitions[i]);
+                }
+            }
+            return connectedArrows;
+        }
+
         Graph.prototype.addArrow = function (fromState, toState, text, loop, initial) {
             for (const arrow of this.transitions) {
-                if (fromState == arrow.fromState && toState == arrow.toState && loop == arrow.loop) {
+                if (fromState == arrow.fromState && toState == arrow.toState && loop == arrow.loop && initial == arrow.initial) {
                     arrow.updateLabel(arrow.label.text + ',' + text);
                     return arrow;
                 }
@@ -790,6 +869,7 @@
             let newArrow = new Arrow(fromState, toState, text, loop, initial);
             this.transitions.push(newArrow);
             if (initial) {
+                if (this.initialArrow) this.removeArrow(this.initialArrow);
                 this.initialState = fromState;
                 this.initialArrow = newArrow;
             }
