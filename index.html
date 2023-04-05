@@ -202,7 +202,7 @@
                     arrow.label.text,
                     arrow.loop,
                     arrow.initial
-                    );
+                );
             }
             delete stateMap;
             stateMap = null;
@@ -615,6 +615,10 @@
             fromStates.forEach(stateSet.add, stateSet);
 
             let stateArray = [...stateSet]
+            if (stateArray.length == 0) {
+                alert("Warning - Resultant DFA contains no states. Terminating conversion.");
+                return newGraph;
+            }
 
             // Assemble states
             for (const s of stateSet) {
@@ -1624,8 +1628,10 @@
                 document.getElementById('simulates').style.display = "none";
                 document.getElementById('regexes').style.display = "none";
                 logo.text = "Create";
-                for (let i = 0; i < workingAutomaton.q.length; i++) {
-                    workingAutomaton.q[i].redraw();
+                if (workingAutomaton) {
+                    for (let i = 0; i < workingAutomaton.q.length; i++) {
+                        workingAutomaton.q[i].redraw();
+                    }
                 }
                 workingAutomaton = null;
                 wordTracker.text = "Word: "
@@ -1718,7 +1724,9 @@
                         acceptTracker.visible = false;
                     }
                 } else {
+                    acceptTracker.visible = false;
                     workingAutomaton.selfDestruct();
+                    workingAutomaton = null;
                 }
                 document.getElementById('convert').disabled = true;
 
