@@ -127,6 +127,9 @@
             <input type="button" value="To NFA" id="regToNFA" />
         </div>
         <div>
+            <input type="button" value="NFA to Regex" id="NFAToReg" />
+        </div>
+        <div>
             <input type="button" value=">" id="create2" />
         </div>
     </div>
@@ -179,6 +182,27 @@
             fill: 0x00bb00
         });
 
+        function copyGraph(oldGraph) {
+            let newGraph = new Graph();
+            let stateMap = new Map();
+            for (const state of oldGraph.states) {
+                stateMap.set(state, newGraph.addState(state.label.text, state.graphics.x, state.graphics.y));
+                if (state.accepting) newGraph.makeAccepting(stateMap.get(state));
+            }
+            for (const arrow of oldGraph.transitions) {
+                newGraph.addArrow(
+                    stateMap.get(arrow.fromState),
+                    stateMap.get(arrow.toState),
+                    arrow.label.text,
+                    arrow.loop,
+                    arrow.initial
+                    );
+            }
+            delete stateMap;
+            stateMap = null;
+            return newGraph;
+        }
+
         function nfaToRegex(nfa) {
             if (nfa.acceptingStates.length == 0) {
                 alert("Warning - NFA has no accepting states");
@@ -198,7 +222,6 @@
             nfa.addArrow(start, nfa.initialState, '\u03b5', false, false);
             nfa.addArrow(start, start, '\u03b5', false, true);
             for (const state of nfa.acceptingStates) {
-                console.log(state);
                 nfa.addArrow(state, end, '\u03b5', false, false);
                 nfa.removeAcception(state);
             }
@@ -1436,6 +1459,14 @@
                 if (regGraph === null) return;
                 workingGraph.selfDestruct();
                 workingGraph = regGraph;
+            }
+            document.getElementById('NFAToReg').onclick = function () {
+                let copyNFA = copyGraph(workingGraph);
+                let regexOut = nfaToRegex(copyNFA);
+                copyNFA.selfDestruct();
+                copyNFA = null;
+                delete copyNFA;
+                document.getElementById('regexbox').value = regexOut;
             }
 
             // Simulate mode UI elements
