@@ -2,11 +2,13 @@
 <html>
 
 <head>
-    <link rel="stylesheet" type="text/css" href="fonts/fonts.css">
+    <link href="/style.css" rel="stylesheet" type="text/css" href="fonts/fonts.css">
     <script src="pixi.js"></script>
     <script src="graphics.js"></script>
     <style>
-        body {
+        body {}
+
+        .application {
             text-align: center;
         }
 
@@ -76,63 +78,99 @@
 </head>
 
 <body>
-    <div id="app-position"></div>
-    <div class="inputs" id="inputs">
-        <div>
-            <input type="button" value="<" id="regex" />
+
+    <h1><i>finAuto</i> - a Finite Automata Simulator</h1>
+
+    <hr>
+
+    <div class="application">
+        <div id="app-position"></div>
+        <div class="inputs" id="inputs">
+            <div>
+                <input type="button" value="<" id="regex" />
+            </div>
+            <div>
+                <input type="button" value="Add state" id="addstate" />
+            </div>
+            <div>
+                <input type="button" value="Add arrow" id="addarrow" />
+            </div>
+            <div>
+                <input type="button" value="Delete selected" id="delstate" />
+            </div>
+            <div>
+                <input type="text" id="inputbox" placeholder="Nothing selected" autofocus="true" />
+            </div>
+            <div>
+                <input type="button" value="Normal" id="accept" />
+            </div>
+            <div>
+                <input type="button" value=">" id="simulate" />
+            </div>
         </div>
-        <div>
-            <input type="button" value="Add state" id="addstate" />
+
+        <div class="simulates" id="simulates">
+            <div>
+                <input type="button" value="<" id="create" />
+            </div>
+            <div>
+                <input type="text" id="wordbox" placeholder="Empty string" />
+            </div>
+            <div>
+                <input type="button" value="Step" id="stepOne" />
+            </div>
+            <div>
+                <input type="button" value="Reset" id="resetAuto" />
+            </div>
+            <div>
+                <input type="button" value="To DFA" id="convert" />
+            </div>
         </div>
-        <div>
-            <input type="button" value="Add arrow" id="addarrow" />
-        </div>
-        <div>
-            <input type="button" value="Delete selected" id="delstate" />
-        </div>
-        <div>
-            <input type="text" id="inputbox" placeholder="Nothing selected" autofocus="true" />
-        </div>
-        <div>
-            <input type="button" value="Normal" id="accept" />
-        </div>
-        <div>
-            <input type="button" value=">" id="simulate" />
+
+        <div class="regexes" id="regexes">
+            <div>
+                <input type="text" id="regexbox" placeholder="Empty regex" />
+            </div>
+            <div>
+                <input type="button" value="To NFA" id="regToNFA" />
+            </div>
+            <div>
+                <input type="button" value="NFA to Regex" id="NFAToReg" />
+            </div>
+            <div>
+                <input type="button" value=">" id="create2" />
+            </div>
         </div>
     </div>
 
-    <div class="simulates" id="simulates">
-        <div>
-            <input type="button" value="<" id="create" />
-        </div>
-        <div>
-            <input type="text" id="wordbox" placeholder="Empty string" />
-        </div>
-        <div>
-            <input type="button" value="Step" id="stepOne" />
-        </div>
-        <div>
-            <input type="button" value="Reset" id="resetAuto" />
-        </div>
-        <div>
-            <input type="button" value="To DFA" id="convert" />
-        </div>
-    </div>
+    <hr>
 
-    <div class="regexes" id="regexes">
-        <div>
-            <input type="text" id="regexbox" placeholder="Empty regex" />
-        </div>
-        <div>
-            <input type="button" value="To NFA" id="regToNFA" />
-        </div>
-        <div>
-            <input type="button" value="NFA to Regex" id="NFAToReg" />
-        </div>
-        <div>
-            <input type="button" value=">" id="create2" />
-        </div>
-    </div>
+    <h2>What is <i>finAuto</i>?</h2>
+    <i>finAuto</i> is a Web-based finite automata simulator. With this app, you can:
+    <ul>
+        <li>Build DFAs and NFAs</li>
+        <li>Simulate them on an input word stepwise</li>
+        <li>Convert NFAs to DFAs by the powerset construction</li>
+        <li>Convert regular expressions to NFAs by Thompson's construction</li>
+        <li>Convert NFAs to regular expressions by the GNFA method</li>
+    </ul>
+
+    <h2>How does NFA computation work in <i>finAuto</i>?</h2>
+    At each step, every transition possible is taken for the input symbol, as well as any jump edges.
+    This creates a set of current states as a result. Current states that are the result of a possible
+    non-accepting path are marked in <span id="red">red</span>, and those that are the result of a possible
+    accepting path are marked in <span id="green">green</span>.
+
+    <h2>What is the regular expression syntax?</h2>
+
+    <ul>
+        <li>Concatenation - ab</li>
+        <li>Union - a|b</li>
+        <li>Kleene star - a*</li>
+        <li>Bracketing - (ab)</li>
+    </ul>
+    There is no other special syntax. An example regex is (1|01*0)*, representing the language of binary
+    strings with an even number of 0s.
 
     <script>
 
