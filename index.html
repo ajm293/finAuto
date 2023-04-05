@@ -182,6 +182,12 @@
             fill: 0x00bb00
         });
 
+        /**
+         * Deep copies a Graph object by value.
+         * 
+         * @param {Graph} oldGraph
+         * @returns {Graph} newGraph
+         **/
         function copyGraph(oldGraph) {
             let newGraph = new Graph();
             let stateMap = new Map();
@@ -203,6 +209,16 @@
             return newGraph;
         }
 
+        /**
+         * Converts a Graph representing an NFA into its
+         * corresponding regular expression by the state-replacement
+         * generalised NFA method. Doing so alters the graph such that
+         * it cannot be simulated correctly, but this can be avoided
+         * by deep copying first.
+         * 
+         * @param {Graph} nfa
+         * @returns {string} lastArrow.label.text
+         **/
         function nfaToRegex(nfa) {
             if (nfa.acceptingStates.length == 0) {
                 alert("Warning - NFA has no accepting states");
@@ -249,16 +265,21 @@
                         let strToAdd = '';
                         if (selfLoop) {
                             strToAdd = (A.label.text != '\u03b5' ? A.label.text : '')
-                                + selfLoop.label.text + "*" + (B.label.text != '\u03b5' ? B.label.text : '');
+                                + (selfLoop.label.text != '\u03b5' ? selfLoop.label.text + "*" : '')
+                                + (B.label.text != '\u03b5' ? B.label.text : '');
                         } else {
-                            strToAdd = (A.label.text != '\u03b5' ? A.label.text : '') + (B.label.text != '\u03b5' ? B.label.text : '');
+                            strToAdd = (A.label.text != '\u03b5' ? A.label.text : '')
+                                + (B.label.text != '\u03b5' ? B.label.text : '');
                         }
+                        if (strToAdd == '') strToAdd = '\u03b5';
+                        if (strToAdd == '*') strToAdd = '\u03b5*';
                         lastArrow = nfa.addArrow(A.fromState, B.toState, strToAdd, (A.fromState == B.toState), false);
                     }
                 }
                 nfa.removeState(state);
                 for (const arrow of nfa.transitions) {
                     if (arrow.symbols.size > 1) {
+                        console.log(arrow.symbols);
                         arrow.updateLabel("(" + [...arrow.symbols].join("|") + ")");
                     }
                 }
@@ -353,6 +374,13 @@
             return output;
         }
 
+        /**
+         * Converts a regular expression into a Graph object representing
+         * an NFA by the Thompson construction.
+         * 
+         * @param {string} regex
+         * @returns {Graph} newGraph
+         **/
         RegexParser.prototype.thompson = function (regex) {
             let postfix = this.shuntingYard(this.addConcatenations(regex));
             let stateCount = 0;
@@ -690,6 +718,13 @@
             this.graph.selfDestruct();
         }
 
+        /**
+         * Converts the array of arrows in the FA's underlying graph
+         * into a transition matrix of size MxNxM, where M is |Q| and
+         * N is |Sigma|, and an element A[i][j][k] is an Arrow object
+         * if there is a transition from State_i for the input symbol
+         * Sigma_j to State_k.
+         **/
         FA.prototype.buildTransitionFunction = function () {
             // Here, we build the FA's transition function as a transition matrix
             // of size MxNxM, where M is |Q| and N is |Sigma|.
@@ -722,6 +757,10 @@
             }
         }
 
+        /**
+         * Resets the automaton to its initial configuration ready
+         * for simulation.
+         **/
         FA.prototype.reset = function () {
             this.redrawSet();
             this.currentSet.clear();
@@ -730,12 +769,24 @@
             this.accepting = this.isAccepting();
         }
 
+        /**
+         * Redraws all current states in the current state set.
+         **/
         FA.prototype.redrawSet = function () {
             for (const state of this.currentSet) {
                 state.redraw();
             }
         }
 
+        /**
+         * Returns the set of states reachable by taking all
+         * transitions possible from the input state on the
+         * input symbol
+         * 
+         * @param {State} state
+         * @param {string} input
+         * @returns {Set} next
+         **/
         FA.prototype.nextStates = function (state, input) {
             let i = this.q.indexOf(state);
             let j = this.sigma.indexOf(input);
@@ -748,6 +799,13 @@
             return next;
         }
 
+        /**
+         * Performs the path-tree blend computation method for one step
+         * on the FA for the input symbol.
+         * 
+         * @param {string} input
+         * @returns {boolean} this.isAccepting()
+         **/
         FA.prototype.step = function (input) {
             // Calculates the new set of current states based on the
             // epsilon closure of each state in the current states set.
@@ -772,6 +830,12 @@
             return this.isAccepting();
         }
 
+        /**
+         * Returns true if the automaton accepts the current input word,
+         * otherwise false, and updates the value of this.accepting.
+         * 
+         * @returns {boolean} this.accepting
+         **/
         FA.prototype.isAccepting = function () {
             this.accepting = false;
             for (const state of this.currentSet) {
@@ -783,6 +847,11 @@
             return this.accepting;
         }
 
+        /**
+         * Returns true if the automaton is a DFA, otherwise false.
+         * 
+         * @returns {boolean} deterministic
+         **/
         FA.prototype.isDeterministic = function () {
             // For a finite automaton to be deterministic, every state must
             // have exactly one transition for every symbol in its alphabet.
@@ -820,10 +889,20 @@
             this.acceptingStates = [];
         }
 
+        /**
+         * Remove all states in the current Graph ready for
+         * full deletion.
+         **/
         Graph.prototype.selfDestruct = function () {
             this.states.forEach(item => this.removeState(item));
         }
 
+        /**
+         * Set a state in the Graph to be accepting, adding it
+         * to this.acceptingStates
+         * 
+         * @param {State} state
+         **/
         Graph.prototype.makeAccepting = function (state) {
             if (this.states.includes(state)) {
                 if (this.acceptingStates.includes(state)) {
@@ -837,6 +916,12 @@
             }
         }
 
+        /**
+         * Set an accepting state as normal again, removing it
+         * from this.acceptingStates
+         * 
+         * @param {State} state
+         **/
         Graph.prototype.removeAcception = function (state) {
             if (this.acceptingStates.includes(state)) {
                 this.acceptingStates = this.acceptingStates.filter(item => item !== state);
@@ -846,12 +931,24 @@
             }
         }
 
+        /**
+         * Create and add a state to the Graph.
+         * 
+         * @param {string} text
+         * @param x
+         * @param y
+         **/
         Graph.prototype.addState = function (text, x, y) {
             let newState = new State(text, x, y);
             this.states.push(newState);
             return newState;
         }
 
+        /**
+         * Remove a state from the graph and delete it.
+         * 
+         * @param {State} state
+         **/
         Graph.prototype.removeState = function (state) {
             this.states = this.states.filter(item => item !== state);
             this.acceptingStates = this.acceptingStates.filter(item => item !== state);
@@ -872,6 +969,13 @@
             delete state;
         }
 
+        /**
+         * Find and return all Arrows connected to a State, including
+         * inward, outward, looping, and the initial arrow.
+         * 
+         * @param {State} state
+         * @returns {Array} connectedArrows
+         **/
         Graph.prototype.getConnectedArrows = function (state) {
             let connectedArrows = [];
             for (let i = 0; i < this.transitions.length; i++) {
@@ -882,6 +986,16 @@
             return connectedArrows;
         }
 
+        /**
+         * Create and add an arrow between two states to the graph.
+         * 
+         * @param {State} fromState
+         * @param {State} toState
+         * @param {string} text
+         * @param {boolean} loop
+         * @param {boolean} initial
+         * @returns {Arrow} newArrow
+         **/
         Graph.prototype.addArrow = function (fromState, toState, text, loop, initial) {
             for (const arrow of this.transitions) {
                 if (fromState == arrow.fromState && toState == arrow.toState && loop == arrow.loop && initial == arrow.initial) {
@@ -899,6 +1013,11 @@
             return newArrow;
         }
 
+        /**
+         * Remove an arrow from the graph and delete it.
+         * 
+         * @param {Arrow} arrow
+         **/
         Graph.prototype.removeArrow = function (arrow) {
             if (arrow == this.initialArrow) {
                 this.initialArrow = null;
@@ -925,6 +1044,13 @@
             return this;
         }
 
+        /**
+         * Initialise graphics for state on the main PIXI canvas.
+         * Note: Will only update correctly if the state is in workingGraph.
+         * 
+         * @param x
+         * @param y
+         **/
         State.prototype.initGraphics = function (x, y) {
             this.graphics.lineStyle(2, 0x000000);
             this.graphics.beginFill(0xffffff);
@@ -946,6 +1072,9 @@
             app.stage.addChild(this.graphics);
         }
 
+        /**
+         * Initialise PIXI-controlled interaction for the state.
+         **/
         State.prototype.initInteraction = function () {
             this.graphics.interactive = true;
             this.graphics.cursor = 'pointer';
@@ -953,12 +1082,18 @@
             this.graphics.on('pointerdown', onButtonDown, this);
         }
 
+        /**
+         * Indicate a state is accepting graphically.
+         **/
         State.prototype.makeAccepting = function () {
             this.accepting = true;
             this.graphics.lineStyle(2, 0x000000);
             this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS - 3);
         }
 
+        /**
+         * Indicate a state is normal graphically.
+         **/
         State.prototype.makeNormal = function () {
             this.accepting = false;
             this.graphics.clear();
@@ -968,6 +1103,9 @@
             this.graphics.endFill();
         }
 
+        /**
+         * Redraw the state according to its current properties.
+         **/
         State.prototype.redraw = function () {
             this.graphics.clear();
             this.graphics.lineStyle(2, 0x000000);
@@ -984,6 +1122,9 @@
 
         }
 
+        /**
+         * Indicate the state is a current state during simulation.
+         **/
         State.prototype.mark = function () {
             if (this.accepting) {
                 this.green();
@@ -992,18 +1133,29 @@
             }
         }
 
+        /**
+         * Colour a state red, indicating it is current but not accepting.
+         **/
         State.prototype.red = function () {
             this.graphics.beginFill(0xdd0000, 0.2);
             this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
             this.graphics.endFill();
         }
 
+        /**
+         * Colour a state green, indicating it is current and accepting.
+         **/
         State.prototype.green = function () {
             this.graphics.beginFill(0x00dd00, 0.2);
             this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS);
             this.graphics.endFill();
         }
 
+        /**
+         * Change the name of the state.
+         * 
+         * @param {string} text
+         **/
         State.prototype.updateLabel = function (text) {
             this.name = text;
             this.label.text = text;
@@ -1015,6 +1167,12 @@
             }
         }
 
+        /**
+         * Move the state to the PIXI canvas position (x,y).
+         * 
+         * @param x
+         * @param y
+         **/
         State.prototype.position = function (x, y) {
             this.graphics.x = x;
             this.graphics.y = y;
@@ -1048,6 +1206,9 @@
             return this;
         }
 
+        /**
+         * Initialise PIXI graphics for arrow on canvas.
+         **/
         Arrow.prototype.initGraphics = function () {
             this.initInteraction();
 
@@ -1060,6 +1221,9 @@
             }
         }
 
+        /**
+         * Initialise PIXI-controlled interaction for arrow.
+         **/
         Arrow.prototype.initInteraction = function () {
             this.graphics.interactive = true;
             this.graphics.cursor = 'pointer';
@@ -1076,6 +1240,9 @@
             }
         }
 
+        /**
+         * Redraw the arrow on the PIXI canvas.
+         **/
         Arrow.prototype.update = function () {
             if (this.initial) {
                 this.updateInitial();
@@ -1165,6 +1332,9 @@
 
         }
 
+        /**
+         * Redraw an initial arrow on the PIXI canvas
+         **/
         Arrow.prototype.updateInitial = function () {
             this.graphics.x = this.toState.graphics.x;
             this.graphics.y = this.toState.graphics.y;
@@ -1178,6 +1348,9 @@
 
         }
 
+        /**
+         * Redraw a loop arrow on the PIXI canvas
+         **/
         Arrow.prototype.updateLoop = function () {
             let p1x = -20;
             let p1y = -50 - STATE_RADIUS;
@@ -1211,6 +1384,12 @@
 
         }
 
+        /**
+         * Update the arrow's symbol set and label according to
+         * the input text.
+         * 
+         * @param {string} text
+         **/
         Arrow.prototype.updateLabel = function (text) {
             this.label.text = text;
             this.symbols.clear();
@@ -1218,6 +1397,9 @@
             this.symbols.delete('');
         }
 
+        /**
+         * Render and redraw all arrows in the current working graph.
+         **/
         function updateAll() {
             for (let i = 0; i < workingGraph.transitions.length; i++) {
                 workingGraph.transitions[i].update();
@@ -1227,7 +1409,13 @@
         // Helper functions
 
         /**
-         * Draw an arrowhead at a point given an angle
+         * Draw an arrowhead at a point given an angle.
+         * 
+         * @param {PIXI.Graphics} arrow
+         * @param x
+         * @param y
+         * @param angle
+         * @param {boolean} reversed
          */
         function drawArrowhead(arrow, x, y, angle, reversed) {
             arrow.moveTo(x, y);
@@ -1245,6 +1433,14 @@
 
         /**
          * Calculate the closest point from (x1,y1) on a circle with centre (x2,y2) and radius r
+         * 
+         * @param x1
+         * @param y1
+         * @param x2
+         * @param y2
+         * @param r
+         * 
+         * @returns {Object}
          */
         function closestPointOnCircle(x1, y1, x2, y2, r) {
             let angle = Math.atan2(x1 - x2, y1 - y2);
