@@ -6,7 +6,6 @@
     <script src="pixi.js"></script>
     <script src="graphics.js"></script>
     <style>
-        body {}
 
         .application {
             text-align: center;
@@ -155,6 +154,31 @@
         <li>Convert NFAs to regular expressions by the GNFA method</li>
     </ul>
 
+    <h2>How do I use <i>finAuto</i>?</h2>
+
+    The app has three modes:
+    <dl>
+        <dt>Create mode (default)
+        <dd>This allows you to build a DFA or NFA by adding states and arrows
+            to the canvas. Clicking on a state or arrow allows you to change its label
+            and whether a state is accepting or not. Arrows can take multiple symbols
+            by separating each letter with commas.<br>
+            <span id="red">This simulator only implements simple NFAs - an arrow simply
+                labelled "ab" corresponds to a single unique symbol "ab" and not the
+                concatenation of a and b.</span>
+        <dt>Simulate mode (right of Create mode)
+        <dd>An input word can be specified and stepped through, showing how
+            the current states change in the canvas automaton. Additionally, you can also convert an
+            NFA into a DFA. <span id="green">Symbols consisting of multiple letters can be accessed
+                with angle brackets - the symbol "ab" would be accessed through &lt;ab&gt; in the input word
+                box and is read as a single symbol.
+            </span>
+        <dt>Regex mode (left of Create mode)
+        <dd>You can either convert a given regular expression into an NFA, which will
+            overwrite the current automaton on the canvas, or convert the current NFA into a regular
+            expression which appears in the regex input box.
+    </ul>
+
     <h2>How does NFA computation work in <i>finAuto</i>?</h2>
     At each step, every transition possible is taken for the input symbol, as well as any jump edges.
     This creates a set of current states as a result. Current states that are the result of a possible
@@ -168,7 +192,7 @@
         <li>Union - a|b</li>
         <li>Kleene star - a*</li>
         <li>Bracketing - (ab)</li>
-    </ul>
+    </ul><br>
     There is no other special syntax. An example regex is (1|01*0)*, representing the language of binary
     strings with an even number of 0s.
 
@@ -1656,6 +1680,7 @@
                     } else {
                         acceptTracker.visible = false;
                     }
+                    if (wordbox.value != '') document.getElementById('stepOne').disabled = false;
                 } else {
                     alert("Automaton needs an initial state.");
                 }
@@ -1719,16 +1744,41 @@
                 }
             }
 
+            function assembleSymbol(wordboxValue) {
+                let inputSymbol = ""
+                for (let i = 0; i < wordboxValue.length; i++) {
+                    inputSymbol += wordboxValue.charAt(i);
+                    if (wordboxValue.charAt(i) == '>') {
+                        return inputSymbol;
+                    }
+                }
+                alert("Warning - missing closing angle brackets.");
+                return null;
+            }
+
             document.getElementById('stepOne').onclick = function () {
                 if (wordbox.value != '') {
+                    let multisymbol = false;
                     let inputSymbol = wordbox.value[0];
-                    workingAutomaton.step(inputSymbol);
+                    if (inputSymbol == '<') {
+                        multisymbol = true;
+                        inputSymbol = assembleSymbol(wordbox.value);
+                    }
+                    if (!inputSymbol) {
+                        return;
+                    }
+                    if (multisymbol) {
+                        console.log(inputSymbol.substring(1, inputSymbol.length-1));
+                        workingAutomaton.step(inputSymbol.substring(1, inputSymbol.length-1));
+                    } else {
+                        workingAutomaton.step(inputSymbol);
+                    }
                     if (workingAutomaton.accepting) {
                         acceptTracker.visible = true;
                     } else {
                         acceptTracker.visible = false;
                     }
-                    wordbox.value = wordbox.value.substring(1);
+                    wordbox.value = wordbox.value.substring(inputSymbol.length);
                     wordTracker.text = wordTracker.text += inputSymbol;
                 }
                 if (wordbox.value.length == 0) {
