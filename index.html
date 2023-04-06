@@ -158,26 +158,26 @@
 
     The app has three modes:
     <dl>
-        <dt>Create mode (default)
+        <dt>Create mode (default)</dt>
         <dd>This allows you to build a DFA or NFA by adding states and arrows
             to the canvas. Clicking on a state or arrow allows you to change its label
             and whether a state is accepting or not. Arrows can take multiple symbols
             by separating each letter with commas.<br>
             <span id="red">This simulator only implements simple NFAs - an arrow simply
                 labelled "ab" corresponds to a single unique symbol "ab" and not the
-                concatenation of a and b.</span>
-        <dt>Simulate mode (right of Create mode)
+                concatenation of a and b.</span></dd>
+        <dt>Simulate mode (right of Create mode)</dt>
         <dd>An input word can be specified and stepped through, showing how
             the current states change in the canvas automaton. Additionally, you can also convert an
             NFA into a DFA. <span id="green">Symbols consisting of multiple letters can be accessed
                 with angle brackets - the symbol "ab" would be accessed through &lt;ab&gt; in the input word
                 box and is read as a single symbol.
-            </span>
-        <dt>Regex mode (left of Create mode)
+            </span></dd>
+        <dt>Regex mode (left of Create mode)</dt>
         <dd>You can either convert a given regular expression into an NFA, which will
             overwrite the current automaton on the canvas, or convert the current NFA into a regular
-            expression which appears in the regex input box.
-    </ul>
+            expression which appears in the regex input box.</dd>
+    </dl>
 
     <h2>How does NFA computation work in <i>finAuto</i>?</h2>
     At each step, every transition possible is taken for the input symbol, as well as any jump edges.
