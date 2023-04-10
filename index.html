@@ -1768,6 +1768,7 @@
                 workingGraph.selfDestruct();
                 workingGraph = regGraph;
                 focusTarget = null;
+                lastFocused = null;
                 onButtonDown(null);
             }
             document.getElementById('NFAToReg').onclick = function () {
@@ -1862,7 +1863,9 @@
                     workingAutomaton = null;
                 }
                 document.getElementById('convert').disabled = true;
-
+                focusTarget = null;
+                lastFocused = null;
+                onButtonDown(null);
             }
         }
 
