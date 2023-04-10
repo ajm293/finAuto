@@ -204,6 +204,7 @@
         // Application constants
 
         const STATE_RADIUS = 30;
+        const FOCUS_COLOR = 0x0000DD;
 
         var workingGraph = null;
 
@@ -759,8 +760,6 @@
             this.q0 = graph.initialState;
             this.f = graph.acceptingStates;
 
-            this.current = this.q0;
-
             this.q0arrow = this.graph.initialArrow;
             this.arrows = this.graph.transitions.filter(item => item != this.q0arrow);
 
@@ -770,7 +769,6 @@
             this.currentSet = new Set();
             this.currentSet = epsilonClosure(this, [this.q0]);
 
-            this.output = false;
             this.deterministic = this.isDeterministic();
 
             this.currentSet.forEach(item => item.mark());
@@ -834,7 +832,7 @@
          * for simulation.
          **/
         FA.prototype.reset = function () {
-            this.redrawSet();
+            this.unmarkSet();
             this.currentSet.clear();
             this.currentSet = epsilonClosure(this, [this.q0]);
             this.currentSet.forEach(item => item.mark());
@@ -842,11 +840,11 @@
         }
 
         /**
-         * Redraws all current states in the current state set.
+         * Unmark all current states in the current state set.
          **/
-        FA.prototype.redrawSet = function () {
+        FA.prototype.unmarkSet = function () {
             for (const state of this.currentSet) {
-                state.redraw();
+                state.unmark();
             }
         }
 
@@ -888,7 +886,7 @@
                 throw "The input symbol " + input + " is not in the alphabet.";
                 return;
             }
-            this.redrawSet();
+            this.unmarkSet();
             let newCurrent = new Set();
             let nextStates = null;
             for (const state of epsilonClosure(this, this.currentSet)) {
@@ -1113,6 +1111,10 @@
 
             this.accepting = false;
 
+            this.marked = false;
+
+            this.focused = false;
+
             return this;
         }
 
@@ -1188,21 +1190,40 @@
                 this.graphics.lineStyle(2, 0x000000);
                 this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS - 3);
             }
+            if (this.marked) {
+                this.mark();
+            }
+            if (this.focused) {
+                this.focus();
+            }
         }
 
         State.prototype.focus = function () {
+            this.focused = true;
+            this.graphics.lineStyle(2, FOCUS_COLOR);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS+2);
+        }
 
+        State.prototype.unfocus = function () {
+            this.focused = false;
+            this.redraw();
         }
 
         /**
          * Indicate the state is a current state during simulation.
          **/
         State.prototype.mark = function () {
+            this.marked = true;
             if (this.accepting) {
                 this.green();
             } else {
                 this.red();
             }
+        }
+
+        State.prototype.unmark = function () {
+            this.marked = false;
+            this.redraw();
         }
 
         /**
@@ -1248,8 +1269,6 @@
         State.prototype.position = function (x, y) {
             this.graphics.x = x;
             this.graphics.y = y;
-            this.x = x;
-            this.y = y;
         }
 
         // Arrow prototypes
@@ -1270,6 +1289,8 @@
             if (initial) {
                 this.label.visible = false;
             }
+
+            this.focused = false;
 
             this.graphics.curve = 0;
 
@@ -1341,7 +1362,11 @@
             let temp = 0;
 
             this.graphics.clear();
-            this.graphics.lineStyle(2, 0x000000, 1);
+            if (this.focused) {
+                this.graphics.lineStyle(2, FOCUS_COLOR, 1);
+            } else {
+                this.graphics.lineStyle(2, 0x000000, 1);
+            }
 
             if (curve > 0) {
                 let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
@@ -1413,7 +1438,11 @@
 
             this.graphics.clear();
             this.graphics.moveTo(-STATE_RADIUS - 25, 0);
-            this.graphics.lineStyle(2, 0x000000);
+            if (this.focused) {
+                this.graphics.lineStyle(2, FOCUS_COLOR, 1);
+            } else {
+                this.graphics.lineStyle(2, 0x000000, 1);
+            }
             this.graphics.lineTo(-STATE_RADIUS, 0);
 
             drawArrowhead(this.graphics, -STATE_RADIUS, 0, 2 * Math.PI - Math.PI / 2);
@@ -1438,7 +1467,11 @@
             this.graphics.x = this.fromState.graphics.x;
             this.graphics.y = this.fromState.graphics.y;
             this.graphics.moveTo(start.x, start.y);
-            this.graphics.lineStyle(2, 0x000000);
+            if (this.focused) {
+                this.graphics.lineStyle(2, FOCUS_COLOR, 1);
+            } else {
+                this.graphics.lineStyle(2, 0x000000, 1);
+            }
             this.graphics.bezierCurveTo(
                 p1x, p1y,
                 p2x, p2y,
@@ -1453,7 +1486,11 @@
         }
 
         Arrow.prototype.focus = function () {
+            this.focused = true;
+        }
 
+        Arrow.prototype.unfocus = function () {
+            this.focused = false;
         }
 
         /**
@@ -1699,7 +1736,7 @@
                 logo.text = "Create";
                 if (workingAutomaton) {
                     for (let i = 0; i < workingAutomaton.q.length; i++) {
-                        workingAutomaton.q[i].redraw();
+                        workingAutomaton.q[i].unmark();
                     }
                 }
                 workingAutomaton = null;
@@ -1730,6 +1767,8 @@
                 if (regGraph === null) return;
                 workingGraph.selfDestruct();
                 workingGraph = regGraph;
+                focusTarget = null;
+                onButtonDown(null);
             }
             document.getElementById('NFAToReg').onclick = function () {
                 let copyNFA = copyGraph(workingGraph);
@@ -1855,11 +1894,13 @@
             }
         }
 
+        var lastFocused = null;
+
         function onButtonDown(event) {
             focusTarget = this;
 
             if (addingState) {
-                workingGraph.addState(workingGraph.states.length + 1, event.global.x, event.global.y);
+                focusTarget = workingGraph.addState(workingGraph.states.length + 1, event.global.x, event.global.y);
                 addingState = false;
                 stateGhost.visible = false;
             }
@@ -1915,6 +1956,9 @@
             }
 
             if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) { // Handle transition input box
+                if (lastFocused) lastFocused.unfocus();
+                focusTarget.focus();
+                lastFocused = focusTarget;
                 document.getElementById('inputbox').disabled = false;
                 document.getElementById('delstate').disabled = false;
                 document.getElementById('inputbox').value = focusTarget.label.text;
@@ -1922,6 +1966,8 @@
                     document.getElementById('inputbox').placeholder = 'Empty string';
                 }
             } else {
+                if (lastFocused) lastFocused.unfocus();
+                lastFocused = null;
                 document.getElementById('inputbox').value = '';
                 document.getElementById('inputbox').placeholder = 'Nothing selected';
                 document.getElementById('inputbox').disabled = true;
