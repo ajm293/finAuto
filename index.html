@@ -1319,8 +1319,11 @@
          **/
         Arrow.prototype.initInteraction = function () {
             this.graphics.interactive = true;
+            this.label.interactive = true;
             this.graphics.cursor = 'pointer';
+            this.label.cursor = 'pointer';
             this.graphics.on('pointerdown', onButtonDown, this);
+            this.label.on('pointerdown', onButtonDown, this);
             if (this.initial) {
                 this.graphics.toState = this.toState;
                 this.graphics.on('pointerdown', onInitialArrowDragStart, this.graphics);
@@ -1330,6 +1333,7 @@
                 this.graphics.on('pointerdown', onLoopArrowDragStart, this.graphics);
             } else {
                 this.graphics.on('pointerdown', onArrowDragStart, this.graphics);
+                this.label.on('pointerdown', onArrowDragStart, this.graphics);
             }
         }
 
@@ -1575,6 +1579,7 @@
 
         var dragTarget = null;
         var focusTarget = null;
+        var lastFocused = null;
         var mousePos = { x: 0, y: 0 };
         var creatingArrow = null;
         var addingState = false;
@@ -1897,8 +1902,6 @@
                 focusTarget.updateLabel(document.getElementById('inputbox').value);
             }
         }
-
-        var lastFocused = null;
 
         function onButtonDown(event) {
             focusTarget = this;
