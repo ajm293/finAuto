@@ -1972,6 +1972,9 @@
                 if (focusTarget.label.text == '') {
                     document.getElementById('inputbox').placeholder = 'Empty string';
                 }
+                if (focusTarget.initial) {
+                    document.getElementById('inputbox').disabled = true;
+                }
             } else {
                 if (lastFocused) lastFocused.unfocus();
                 lastFocused = null;
