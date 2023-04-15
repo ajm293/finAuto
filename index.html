@@ -1500,7 +1500,7 @@
             );
 
             this.label.x = 0;
-            this.label.y = p2y;
+            this.label.y = p2y-5*Math.abs(Math.cos(this.graphics.rotation));
             this.label.anchor.set(0.5 - 0.5*Math.sin(this.graphics.rotation), 0.5);
 
             drawArrowhead(this.graphics, end.x, end.y, end.angle);
