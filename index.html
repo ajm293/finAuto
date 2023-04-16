@@ -1375,12 +1375,10 @@
 
             let distance = Math.sqrt(dx * dx + dy * dy);
 
-            let anchorX = state2.x + dx * 0.5 - dy * curve / distance;
-            let anchorY = state2.y + dy * 0.5 + dx * curve / distance;
+            let anchorX = state2.x + dx * 0.5 - (dy * curve / distance);
+            let anchorY = state2.y + dy * 0.5 + (dx * curve / distance);
 
             let c = circleFromABC(state2.x, state2.y, state1.x, state1.y, anchorX, anchorY);
-
-            let temp = 0;
 
             this.graphics.clear();
             if (this.focused) {
@@ -1389,7 +1387,7 @@
                 this.graphics.lineStyle(2, 0x000000, 1);
             }
 
-            if (curve > 0) {
+            if (curve > 5) {
                 let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
                 let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) + STATE_RADIUS / c.r;
                 this.graphics.arc(
@@ -1410,7 +1408,7 @@
 
                 drawArrowhead(this.graphics, ax, ay, -endAngle);
 
-            } else if (curve < 0) {
+            } else if (curve < -5) {
                 let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
                 let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) - STATE_RADIUS / c.r;
                 this.graphics.arc(
@@ -1442,8 +1440,8 @@
                 let sin = Math.sin(textAngle + Math.PI);
                 let cos = Math.cos(textAngle + Math.PI);
                 this.label.anchor.set((cos > 0 ? 0 : 1), (sin > 0 ? 0 : 1));
-                this.label.x = anchorX + cos * 5
-                this.label.y = anchorY + sin * 5
+                this.label.x = (state2.x + dx * 0.5) + cos * 5
+                this.label.y = (state2.y + dy * 0.5) + sin * 5
 
                 drawArrowhead(this.graphics, point2.x, point2.y, point2.angle);
             }
@@ -2018,7 +2016,7 @@
         function onArrowDragMove(event) {
             let dy = mousePos.y - event.global.y;
             if (dragTarget) {
-                dragTarget.curve += dy;
+                dragTarget.curve += Math.round(dy);
                 mousePos.y = event.global.y;
             }
         }
