@@ -2097,8 +2097,10 @@
 
         let elapsed = 0.0;
         app.ticker.add((delta) => {
-            elapsed += delta;
-            updateAll();
+            //elapsed += delta;
+            if (!document.hidden) { // Optimisation - do not update if tab is not active
+                updateAll();
+            }
         });
         app.ticker.maxFPS = 60;
     </script>
