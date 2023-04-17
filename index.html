@@ -6,7 +6,6 @@
     <script src="pixi.js"></script>
     <script src="graphics.js"></script>
     <style>
-
         .application {
             text-align: center;
         }
@@ -147,7 +146,8 @@
     <hr>
 
     <h2>What is <i>finAuto</i>?</h2>
-    <i>finAuto</i> is a Web-based finite automata simulator using the PIXI.js graphics library. With this simulator, you can:
+    <i>finAuto</i> is a Web-based finite automata simulator using the PIXI.js graphics library. With this simulator, you
+    can:
     <ul>
         <li>Build DFAs and NFAs</li>
         <li>Simulate them on an input word stepwise</li>
@@ -167,7 +167,8 @@
             by separating each letter with commas.<br>
             <span id="red">This simulator only implements simple NFAs - an arrow simply
                 labelled "ab" corresponds to a single unique symbol "ab" and not the
-                concatenation of a and b.</span></dd>
+                concatenation of a and b.</span>
+        </dd>
         <dt>Simulate mode (right of Create mode)</dt>
         <dd>An input word can be specified and stepped through, showing how
             the current states change in the canvas automaton. Additionally, you can also convert an
@@ -1033,12 +1034,6 @@
 
             let arrowsToRemove = this.getConnectedArrows(state);
 
-            /**for (let i = 0; i < this.transitions.length; i++) {
-                if ((this.transitions[i].fromState == state) || (this.transitions[i].toState == state)) {
-                    arrowsToRemove.push(this.transitions[i]);
-                }
-            }**/
-
             for (let i = 0; i < arrowsToRemove.length; i++) {
                 this.removeArrow(arrowsToRemove[i]);
             }
@@ -1212,7 +1207,7 @@
         State.prototype.focus = function () {
             this.focused = true;
             this.graphics.lineStyle(2, FOCUS_COLOR);
-            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS+2);
+            this.graphics.drawCircle(STATE_RADIUS, STATE_RADIUS, STATE_RADIUS + 2);
         }
 
         /**
@@ -1336,11 +1331,13 @@
          **/
         Arrow.prototype.initInteraction = function () {
             this.graphics.interactive = true;
-            this.label.interactive = true;
             this.graphics.cursor = 'pointer';
-            this.label.cursor = 'pointer';
             this.graphics.on('pointerdown', onButtonDown, this);
+
+            this.label.interactive = true;
+            this.label.cursor = 'pointer';
             this.label.on('pointerdown', onButtonDown, this);
+
             if (this.initial) {
                 this.graphics.toState = this.toState;
                 this.graphics.on('pointerdown', onInitialArrowDragStart, this.graphics);
@@ -1349,8 +1346,8 @@
                 this.graphics.label = this.label;
                 this.graphics.on('pointerdown', onLoopArrowDragStart, this.graphics);
             } else {
-                this.graphics.on('pointerdown', onArrowDragStart, this.graphics);
-                this.label.on('pointerdown', onArrowDragStart, this.graphics);
+                this.graphics.on('pointerdown', onArrowDragStart, this);
+                this.label.on('pointerdown', onArrowDragStart, this);
             }
         }
 
@@ -1386,19 +1383,18 @@
             } else {
                 this.graphics.lineStyle(2, 0x000000, 1);
             }
-
             if (curve > 5) {
-                let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
                 let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) + STATE_RADIUS / c.r;
+                let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
                 this.graphics.arc(
                     c.x,
                     c.y,
                     c.r,
                     Math.PI + startAngle,
-                    Math.PI + endAngle,
+                    Math.PI + endAngle
                 );
 
-                let midAngle = ((endAngle < startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2
+                let midAngle = ((endAngle < startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
                 this.label.anchor.set(0.5, 0.5);
                 this.label.x = c.x + (c.r + this.label.width / 2 + 15) * Math.cos(Math.PI + midAngle);
                 this.label.y = c.y + (c.r + 15) * Math.sin(Math.PI + midAngle);
@@ -1409,17 +1405,17 @@
                 drawArrowhead(this.graphics, ax, ay, -endAngle);
 
             } else if (curve < -5) {
-                let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
                 let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) - STATE_RADIUS / c.r;
+                let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
                 this.graphics.arc(
                     c.x,
                     c.y,
                     c.r,
                     Math.PI + endAngle,
-                    Math.PI + startAngle,
+                    Math.PI + startAngle
                 );
 
-                let midAngle = ((endAngle > startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
+                let midAngle = ((startAngle < endAngle ? startAngle + 2 * Math.PI : startAngle) + endAngle) / 2;
                 this.label.anchor.set(0.5, 0.5);
                 this.label.x = c.x + (c.r + this.label.width / 2 + 15) * Math.cos(Math.PI + midAngle);
                 this.label.y = c.y + (c.r + 15) * Math.sin(Math.PI + midAngle);
@@ -1472,6 +1468,7 @@
          * Redraw a loop arrow on the PIXI canvas
          **/
         Arrow.prototype.updateLoop = function () {
+            // Control points for bezier curve with respect to state
             let p1x = -20;
             let p1y = -50 - STATE_RADIUS;
 
@@ -1498,8 +1495,8 @@
             );
 
             this.label.x = 0;
-            this.label.y = p2y-5*Math.abs(Math.cos(this.graphics.rotation));
-            this.label.anchor.set(0.5 - 0.5*Math.sin(this.graphics.rotation), 0.5);
+            this.label.y = p2y - 5 * Math.abs(Math.cos(this.graphics.rotation));
+            this.label.anchor.set(0.5 - 0.5 * Math.sin(this.graphics.rotation), 0.5);
 
             drawArrowhead(this.graphics, end.x, end.y, end.angle);
 
@@ -1842,8 +1839,8 @@
                         return;
                     }
                     if (multisymbol) {
-                        console.log(inputSymbol.substring(1, inputSymbol.length-1));
-                        workingAutomaton.step(inputSymbol.substring(1, inputSymbol.length-1));
+                        console.log(inputSymbol.substring(1, inputSymbol.length - 1));
+                        workingAutomaton.step(inputSymbol.substring(1, inputSymbol.length - 1));
                     } else {
                         workingAutomaton.step(inputSymbol);
                     }
@@ -2016,7 +2013,11 @@
         function onArrowDragMove(event) {
             let dy = mousePos.y - event.global.y;
             if (dragTarget) {
-                dragTarget.curve += Math.round(dy);
+                if (dragTarget.toState.graphics.x < dragTarget.fromState.graphics.x) {
+                    dragTarget.graphics.curve -= Math.round(dy);
+                } else {
+                    dragTarget.graphics.curve += Math.round(dy);
+                }
                 mousePos.y = event.global.y;
             }
         }
