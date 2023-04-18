@@ -693,12 +693,11 @@
             var fromStates = discovery.map(item => item[0]);
             fromStates.forEach(stateSet.add, stateSet);
 
-            let stateArray = [...stateSet]
-            if (stateArray.length == 0) {
-                alert("Warning - Resultant DFA contains no states. Terminating conversion.");
-                throw "Warning - Resultant DFA contains no states.";
-                return newGraph;
+            if (stateSet.size == 0) { // Handles the very special case of the "do-nothing" automaton
+                stateSet.add(epsilonClosure(nfa, [nfa.q0]));
             }
+            
+            let stateArray = [...stateSet]
 
             // Assemble states
             for (const s of stateSet) {
@@ -707,7 +706,10 @@
                 let newState = newGraph.addState(label, 50 + Math.random() * 900, 50 + Math.random() * 400);
                 let accepting = false;
                 for (const x of s) {
-                    if (x.accepting) accepting = true;
+                    if (x.accepting) {
+                        accepting = true;
+                        break;
+                    }
                 }
                 if (accepting) newGraph.makeAccepting(newState);
             }
@@ -728,6 +730,7 @@
             // Set initial state
             let initial = epsilonClosure(nfa, [nfa.q0]);
             let to = (set) => set.size === initial.size && [...set].every((x) => initial.has(x));
+            console.log(newGraph.states);
             let initialState = newGraph.states[stateArray.findIndex(to)];
             newGraph.addArrow(initialState, initialState, '\u03b5', false, true);
 
