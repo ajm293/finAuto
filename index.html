@@ -578,6 +578,7 @@
             var stateStack = [...states];
 
             let ep = nfa.sigma.indexOf('\u03b5');
+            if (ep == -1) return closure; // No epsilon in alphabet - epsilon closure is trivial
 
             while (stateStack.length != 0) {
                 let s = stateStack.pop();
@@ -695,6 +696,7 @@
             let stateArray = [...stateSet]
             if (stateArray.length == 0) {
                 alert("Warning - Resultant DFA contains no states. Terminating conversion.");
+                throw "Warning - Resultant DFA contains no states.";
                 return newGraph;
             }
 
@@ -940,18 +942,15 @@
 
             let deterministic = true;
 
-            if (this.sigma.length == 1) {
+            if (this.sigma.includes("\u03b5")) {
                 deterministic = false;
+                return deterministic;
             }
 
             for (let i = 0; i < this.q.length; i++) {
                 for (let j = 0; j < this.sigma.length; j++) {
                     let len = this.delta[i][j].filter(item => item).length;
-                    if (this.sigma[j] == "\u03b5") { // Deterministic automata do not have jump arrows
-                        if (len != 0) deterministic = false;
-                    } else {
-                        if (len != 1) deterministic = false;
-                    }
+                    if (len != 1) deterministic = false;
                 }
             }
 
@@ -1037,6 +1036,7 @@
             for (let i = 0; i < arrowsToRemove.length; i++) {
                 this.removeArrow(arrowsToRemove[i]);
             }
+            if (this.initialState == state) this.removeArrow(this.initialArrow);
 
             state.graphics.destroy(true);
             delete state;
@@ -1077,12 +1077,12 @@
                 }
             }
             let newArrow = new Arrow(fromState, toState, text, loop, initial);
-            this.transitions.push(newArrow);
+            
             if (initial) {
                 if (this.initialArrow) this.removeArrow(this.initialArrow);
                 this.initialState = fromState;
                 this.initialArrow = newArrow;
-            }
+            } else this.transitions.push(newArrow);
             return newArrow;
         }
 
@@ -1536,6 +1536,7 @@
             for (let i = 0; i < workingGraph.transitions.length; i++) {
                 workingGraph.transitions[i].update();
             }
+            if (workingGraph.initialArrow) workingGraph.initialArrow.update();
         }
 
         // Helper functions
@@ -1699,9 +1700,6 @@
 
             inputbox.oninput = function () {
                 if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
-                    if (focusTarget instanceof Arrow) {
-                        //workingGraph.updateAlphabet(focusTarget.label.text, document.getElementById('inputbox').value);
-                    }
                     focusTarget.updateLabel(inputbox.value);
                     if (inputbox.value == '') {
                         inputbox.placeholder = "Empty string";
@@ -1882,12 +1880,12 @@
                     } else {
                         acceptTracker.visible = false;
                     }
+                    document.getElementById('convert').disabled = true;
                 } else {
-                    acceptTracker.visible = false;
-                    workingAutomaton.selfDestruct();
-                    workingAutomaton = null;
+                    //acceptTracker.visible = false;
+                    //workingAutomaton.selfDestruct();
+                    //workingAutomaton = null;
                 }
-                document.getElementById('convert').disabled = true;
                 focusTarget = null;
                 lastFocused = null;
                 onButtonDown(null);
@@ -1915,12 +1913,6 @@
         graph.makeAccepting(q3);
 
         // Event handling functions
-
-        function onInputText() {
-            if ((focusTarget instanceof State) || (focusTarget instanceof Arrow)) {
-                focusTarget.updateLabel(document.getElementById('inputbox').value);
-            }
-        }
 
         function onButtonDown(event) {
             focusTarget = this;
