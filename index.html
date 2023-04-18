@@ -580,7 +580,7 @@
             let ep = nfa.sigma.indexOf('\u03b5');
             if (ep == -1) return closure; // No epsilon in alphabet - epsilon closure is trivial
 
-            while (stateStack.length != 0) {
+            while (stateStack.length > 0) {
                 let s = stateStack.pop();
                 let i = nfa.q.indexOf(s);
                 let transition = nfa.delta[i][ep];
@@ -772,7 +772,7 @@
             this.graph = graph;
 
             this.q = graph.states;
-            //this.sigma = [...new Set(graph.alphabet.concat("\u03b5"))];
+
             this.sigma = [...this.getSigma(graph)];
 
             this.q0 = graph.initialState;
@@ -808,21 +808,19 @@
 
         /**
          * Converts the array of arrows in the FA's underlying graph
-         * into a transition matrix of size MxNxM, where M is |Q| and
-         * N is |Sigma|, and an element A[i][j][k] is an Arrow object
-         * if there is a transition from State_i for the input symbol
-         * Sigma_j to State_k.
+         * into a transition matrix of size M x N x max(M), where M is |Q|
+         * and N is |Sigma|, and an element A[i][j] is an array of Arrow objects
+         * corresponding to transitions from State_i for the input symbol
+         * Sigma_j to successor states.
          **/
         FA.prototype.buildTransitionFunction = function () {
             // Here, we build the FA's transition function as a transition matrix
             // of size MxNxM, where M is |Q| and N is |Sigma|.
-            // An element A(i,j,k) in the matrix is an Arrow if there is a
-            // transition from State_i for the input symbol Sigma_j, of which it 
-            // is an Arrow to State_k. If there is no such Arrow,
-            // the element is null.
+            // An element A(i,j) in the matrix is an array of Arrows corresponding to
+            // transitions from State_i for the input symbol Sigma_j to successor states.
             this.delta = Array(this.q.length).fill().map(
                 () => Array(this.sigma.length).fill().map(
-                    () => Array(this.q.length).fill(null)
+                    () => []
                 )
             );
 
@@ -834,13 +832,9 @@
                     mthArrow.updateLabel('\u03b5');
                 } // TODO: Update for multiarrow support
 
-                //let j = this.sigma.indexOf(mthArrow.label.text);
-                let k = this.q.indexOf(mthArrow.toState);
-                //this.delta[i][j][k] = mthArrow;
-
                 for (const symbol of mthArrow.symbols) {
                     let j = this.sigma.indexOf(symbol);
-                    this.delta[i][j][k] = mthArrow;
+                    this.delta[i][j].push(mthArrow);
                 }
             }
         }
@@ -907,11 +901,11 @@
             this.unmarkSet();
             let newCurrent = new Set();
             let nextStates = null;
-            for (const state of epsilonClosure(this, this.currentSet)) {
-                nextStates = epsilonClosure(this, this.nextStates(state, input));
+            for (const state of this.currentSet) {
+                nextStates = this.nextStates(state, input);
                 nextStates.forEach(item => newCurrent.add(item));
             }
-            this.currentSet = newCurrent;
+            this.currentSet = epsilonClosure(this, newCurrent);
             for (const state of this.currentSet) {
                 state.mark();
             }
