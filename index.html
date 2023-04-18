@@ -747,6 +747,10 @@
          * @returns {Graph} dfaGraph
          **/
         PSConstructor.prototype.getPowersetGraph = function (nfa) {
+            if (nfa.deterministic) {
+                throw "Specified FA is already deterministic";
+                return null;
+            }
             let dfaGraph = this.discoveryToGraph(nfa, this.pConstruct(nfa));
             return dfaGraph;
         }
