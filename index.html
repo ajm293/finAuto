@@ -279,6 +279,15 @@
                     arrow.initial
                 );
             }
+            if (oldGraph.initialArrow) {
+                newGraph.addArrow(
+                    stateMap.get(oldGraph.initialArrow.fromState),
+                    stateMap.get(oldGraph.initialArrow.toState),
+                    oldGraph.initialArrow.label.text,
+                    false,
+                    true
+                );
+            }
             delete stateMap;
             stateMap = null;
             return newGraph;
@@ -354,12 +363,11 @@
                 nfa.removeState(state);
                 for (const arrow of nfa.transitions) {
                     if (arrow.symbols.size > 1) {
-                        console.log(arrow.symbols);
                         arrow.updateLabel("(" + [...arrow.symbols].join("|") + ")");
                     }
                 }
             }
-            if (nfa.transitions.length == 2) {
+            if (nfa.transitions.length == 1) {
                 return lastArrow.label.text;
             } else {
                 alert("Error while converting - Failed to condense to one transition.");
