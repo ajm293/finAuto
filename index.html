@@ -304,6 +304,10 @@
          * @returns {string} lastArrow.label.text
          **/
         function nfaToRegex(nfa) {
+            // This algorithm uses Arrow.label.text to store the regular
+            // expressions generated. This creates an NFA that cannot be
+            // simulated in Simulate mode, but exploits the structure of
+            // the Graph object.
             if (nfa.acceptingStates.length == 0) {
                 alert("Warning - NFA has no accepting states");
                 return '';
@@ -319,6 +323,7 @@
 
             let lastArrow = null;
 
+            // Construct singular initial and accepting states required
             nfa.addArrow(start, nfa.initialState, '\u03b5', false, false);
             nfa.addArrow(start, start, '\u03b5', false, true);
             for (const state of nfa.acceptingStates) {
@@ -327,6 +332,7 @@
             }
             nfa.makeAccepting(end);
 
+            // Turn multisymbol arrow into single union regex
             for (const arrow of nfa.transitions) {
                 if (arrow.symbols.size > 1) {
                     arrow.updateLabel("(" + [...arrow.symbols].join("|") + ")");
@@ -339,35 +345,50 @@
                 let fromArrows = [];
                 let selfLoop = false;
                 for (const arrow of connectedArrows) {
+                    // Divide connected arrows into those into the state and those from the state
                     if (arrow.initial) continue;
                     if (arrow.toState == state && !arrow.loop) toArrows.push(arrow);
                     if (arrow.fromState == state && !arrow.loop) fromArrows.push(arrow);
                     if (arrow.loop) selfLoop = arrow;
                 }
+                // For each pair of arrows (A,B) going to and from a state...
                 for (const A of toArrows) {
                     for (const B of fromArrows) {
                         let strToAdd = '';
+                        // If state has a loop arrow, assemble regex like A(loop)*B
                         if (selfLoop) {
+                            if (selfLoop.label.text.length > 1) selfLoop.label.text = "(" + selfLoop.label.text + ")";
                             strToAdd = (A.label.text != '\u03b5' ? A.label.text : '')
                                 + (selfLoop.label.text != '\u03b5' ? selfLoop.label.text + "*" : '')
                                 + (B.label.text != '\u03b5' ? B.label.text : '');
+                        // Otherwise assemble regex like AB
                         } else {
                             strToAdd = (A.label.text != '\u03b5' ? A.label.text : '')
                                 + (B.label.text != '\u03b5' ? B.label.text : '');
                         }
+                        // Handle cases where arrow labels are blank as empty string regex
                         if (strToAdd == '') strToAdd = '\u03b5';
                         if (strToAdd == '*') strToAdd = '\u03b5*';
-                        lastArrow = nfa.addArrow(A.fromState, B.toState, strToAdd, (A.fromState == B.toState), false);
+                        // Finally add the bypassing arrow to the graph
+                        console.log(strToAdd);
+                        lastArrow = nfa.addArrow(
+                            A.fromState,
+                            B.toState,
+                            strToAdd,
+                            (A.fromState == B.toState),
+                            false
+                        );
                     }
                 }
                 nfa.removeState(state);
                 for (const arrow of nfa.transitions) {
+                    // Turn multisymbol arrows into single union regexes
                     if (arrow.symbols.size > 1) {
                         arrow.updateLabel("(" + [...arrow.symbols].join("|") + ")");
                     }
                 }
             }
-            if (nfa.transitions.length == 1) {
+            if (nfa.transitions.length == 1) { // Only single initial and accepting states remain
                 return lastArrow.label.text;
             } else {
                 alert("Error while converting - Failed to condense to one transition.");
@@ -1534,6 +1555,9 @@
          * @param {string} text
          **/
         Arrow.prototype.updateLabel = function (text) {
+            if (text == '') {
+                text = "\u03b5";
+            }
             this.label.text = text;
             this.symbols.clear();
             text.split(',').forEach(item => this.symbols.add(item));
