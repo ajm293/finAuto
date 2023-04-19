@@ -406,6 +406,7 @@
                     while (opStack[opStack.length - 1] !== '(') {
                         outputQueue.push(opStack.pop());
                         if (opStack.length == 0) {
+                            alert("Expression failed to parse - unbalanced parentheses");
                             throw "Failed parsing - unbalanced parentheses";
                             return null;
                         }
@@ -416,6 +417,7 @@
                 }
             }
             if (opStack.includes('(')) {
+                alert("Expression failed to parse - unbalanced parentheses");
                 throw "Failed parsing - unbalanced parentheses";
                 return null;
             }
