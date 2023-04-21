@@ -559,6 +559,7 @@
                         op2 = procStack.pop();
                         if (op1 === undefined || op2 === undefined) {
                             alert("Error processing regex - Not enough operands for |.");
+                            newGraph.selfDestruct();
                             return null;
                         }
                         procStack.push(union(op2, op1));
@@ -568,6 +569,7 @@
                         op2 = procStack.pop();
                         if (op1 === undefined || op2 === undefined) {
                             alert("Error processing regex - Not enough operands for concatenation.");
+                            newGraph.selfDestruct();
                             return null;
                         }
                         procStack.push(concatenation(op2, op1));
@@ -576,6 +578,7 @@
                         op1 = procStack.pop();
                         if (op1 === undefined) {
                             alert("Error processing regex - Not enough operands for *.");
+                            newGraph.selfDestruct();
                             return null;
                         }
                         procStack.push(kleene(op1));
