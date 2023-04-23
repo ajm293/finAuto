@@ -31,7 +31,7 @@ document.getElementById('app-position').appendChild(app.view);
 // Font objects
 
 const cmodern = new PIXI.TextStyle({
-    fontFamily: 'Computer Modern Serif',
+    fontFamily: 'serif',
     //fontStyle: 'italic',
     fontSize: 24
 });
@@ -91,10 +91,10 @@ function copyGraph(oldGraph) {
  * corresponding regular expression by the state-replacement
  * generalised NFA method. Doing so alters the graph such that
  * it cannot be simulated correctly, but this can be avoided
- * by deep copying first.
+ * by deep copying first using copyGraph().
  * 
  * @param {Graph} nfa
- * @returns {string} lastArrow.label.text
+ * @returns {string} the equivalent regular expression
  **/
 function nfaToRegex(nfa) {
     // This algorithm uses Arrow.label.text to store the regular
@@ -189,6 +189,11 @@ function nfaToRegex(nfa) {
 
 // Regex parsing prototypes
 
+/**
+ * Create a new RegexParser object.
+ * 
+ * @returns the new RegexParser object
+ */
 function RegexParser() {
     this.order = {
         '*': 0,
@@ -197,14 +202,16 @@ function RegexParser() {
     };
     this.operators = ['*', '.', '|'];
     this.noncats = ['|', '*', '.'];
+
+    return this;
 }
 
 /**
- * Turns an infix regex expression into a postfix array of
+ * Turns an infix regex into a postfix array of
  * symbols and operators using the Shunting Yard algorithm.
  * 
  * @param {string} string
- * @returns {Array} outputQueue
+ * @returns {Array} the input regex as a postfix ordered array
  **/
 RegexParser.prototype.shuntingYard = function (string) {
     let inputQueue = [...string];
@@ -253,7 +260,7 @@ RegexParser.prototype.shuntingYard = function (string) {
  * doesn't have any in the appropriate locations.
  * 
  * @param {string} string
- * @returns {string} output
+ * @returns {string} the input string with concatenation symbols added
  **/
 RegexParser.prototype.addConcatenations = function (string) {
     let input = [...string];
@@ -280,7 +287,7 @@ RegexParser.prototype.addConcatenations = function (string) {
  * an NFA by the Thompson construction.
  * 
  * @param {string} regex
- * @returns {Graph} newGraph
+ * @returns {Graph} a Graph object equivalent to the input regex
  **/
 RegexParser.prototype.thompson = function (regex) {
     let postfix = this.shuntingYard(this.addConcatenations(regex));
@@ -396,7 +403,7 @@ RegexParser.prototype.thompson = function (regex) {
  * 
  * @param {FA} nfa
  * @param states
- * @returns {Set} closure
+ * @returns {Set} the epsilon closure of the input set of states
  **/
 function epsilonClosure(nfa, states) {
     var closure = new Set();
@@ -424,8 +431,12 @@ function epsilonClosure(nfa, states) {
 
 // Powerset construction functions
 
+/**
+ * Create a new PSConstructor powerset constructor object.
+ * @returns the new PSConstructor object
+ */
 function PSConstructor() {
-
+    return this;
 }
 
 /**
@@ -437,7 +448,7 @@ function PSConstructor() {
  * @param {FA} nfa
  * @param {Set} stateSet
  * @param symbol
- * @returns {Set} next
+ * @returns {Set} the set of states yielded by the input states and input symbol
  **/
 PSConstructor.prototype.deltaGivenR = function (nfa, stateSet, symbol) {
     let next = new Set();
@@ -464,7 +475,7 @@ PSConstructor.prototype.deltaGivenR = function (nfa, stateSet, symbol) {
  * builds the entire powerset, but this is unlikely.
  * 
  * @param {FA} nfa
- * @returns discovery
+ * @returns the discovery array
  **/
 PSConstructor.prototype.pConstruct = function (nfa) {
 
@@ -510,7 +521,7 @@ PSConstructor.prototype.pConstruct = function (nfa) {
  * 
  * @param {FA} nfa
  * @param discovery
- * @returns {Graph} newGraph
+ * @returns {Graph} the DFA yielded from the discovery array
  **/
 PSConstructor.prototype.discoveryToGraph = function (nfa, discovery) {
     var newGraph = new Graph();
@@ -570,7 +581,7 @@ PSConstructor.prototype.discoveryToGraph = function (nfa, discovery) {
  * the equivalent DFA to the input e-NFA.
  * 
  * @param {FA} nfa
- * @returns {Graph} dfaGraph
+ * @returns {Graph} a graph representing the equivalent DFA to the input NFA
  **/
 PSConstructor.prototype.getPowersetGraph = function (nfa) {
     if (nfa.deterministic) {
@@ -594,6 +605,12 @@ function ArrowConstructor() {
 
 // Finite Automaton prototypes
 
+/**
+ * Create a new FA finite automaton object.
+ * 
+ * @param {Graph} graph
+ * @returns the new FA object
+ */
 function FA(graph) {
     this.graph = graph;
 
@@ -618,8 +635,16 @@ function FA(graph) {
     this.currentSet.forEach(item => item.mark());
 
     this.accepting = this.isAccepting();
+
+    return this;
 }
 
+/**
+ * Find the alphabet of a graph
+ * 
+ * @param {Graph} graph 
+ * @returns the alphabet of the graph
+ */
 FA.prototype.getSigma = function (graph) {
     let sigma = new Set();
     for (const arrow of graph.transitions) {
@@ -894,7 +919,7 @@ Graph.prototype.getConnectedArrows = function (state) {
  * @param {string} text
  * @param {boolean} loop
  * @param {boolean} initial
- * @returns {Arrow} newArrow
+ * @returns {Arrow} the new arrow object
  **/
 Graph.prototype.addArrow = function (fromState, toState, text, loop, initial) {
     for (const arrow of this.transitions) {
@@ -931,6 +956,14 @@ Graph.prototype.removeArrow = function (arrow) {
 
 // State prototypes
 
+/**
+ * Create a new State object
+ * 
+ * @param {string} text - Initial label
+ * @param {int} x  - Initial x position
+ * @param {int} y - Initial y position
+ * @returns the new State object
+ */
 function State(text, x, y) {
     this.graphics = new PIXI.Graphics();
     this.name = text;
@@ -952,8 +985,8 @@ function State(text, x, y) {
  * Initialise graphics for state on the main PIXI canvas.
  * Note: Will only update correctly if the state is in workingGraph.
  * 
- * @param x
- * @param y
+ * @param {int} x - Initial x coordinate
+ * @param {int} y - Initial y coordinate
  **/
 State.prototype.initGraphics = function (x, y) {
     this.graphics.lineStyle(2, 0x000000);
@@ -1378,7 +1411,7 @@ function updateAll() {
  * @param x
  * @param y
  * @param angle
- * @param {boolean} reversed
+ * @param {boolean} reversed - changes arrowhead drawing points for negatively curved arrows
  */
 function drawArrowhead(arrow, x, y, angle, reversed) {
     arrow.moveTo(x, y);
@@ -1397,11 +1430,11 @@ function drawArrowhead(arrow, x, y, angle, reversed) {
 /**
  * Calculate the closest point from (x1,y1) on a circle with centre (x2,y2) and radius r
  * 
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- * @param r
+ * @param x1 - x coordinate of point
+ * @param y1 - y coordinate of point
+ * @param x2 - x coordinate of circle centre
+ * @param y2 - y coordinate of circle centre
+ * @param r - radius of circle
  * 
  * @returns {Object}
  */
@@ -1744,10 +1777,16 @@ graph.makeAccepting(q3);
 
 // Event handling functions
 
+/**
+ * Handles the focusing and adding of states and arrows.
+ * 
+ * @param {*} event 
+ * @returns 
+ */
 function onButtonDown(event) {
     focusTarget = this;
 
-    if (addingState) {
+    if (addingState) { // Handle state creation
         focusTarget = workingGraph.addState(workingGraph.states.length + 1, event.global.x, event.global.y);
         addingState = false;
         stateGhost.visible = false;
