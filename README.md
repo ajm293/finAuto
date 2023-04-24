@@ -1,4 +1,7 @@
+
 # finAuto - a Finite Automata Simulator
+
+![finAuto banner](project-banner.png)
 
 ### Features
 
