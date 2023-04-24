@@ -1222,20 +1222,6 @@ Arrow.prototype.update = function () {
         this.updateLoop();
         return;
     }
-    let state1 = this.fromState.graphics;
-    let state2 = this.toState.graphics;
-
-    let curve = this.graphics.curve;
-
-    let dx = state1.x - state2.x;
-    let dy = state1.y - state2.y;
-
-    let distance = Math.sqrt(dx * dx + dy * dy);
-
-    let anchorX = state2.x + dx * 0.5 - (dy * curve / distance);
-    let anchorY = state2.y + dy * 0.5 + (dx * curve / distance);
-
-    let c = circleFromABC(state2.x, state2.y, state1.x, state1.y, anchorX, anchorY);
 
     this.graphics.clear();
 
@@ -1245,9 +1231,27 @@ Arrow.prototype.update = function () {
         this.graphics.lineStyle(2, 0x000000, 1);
     }
 
-    let startAngle = 0;
-    let endAngle = 0;
-    let midAngle = 0;
+    let state1 = this.fromState.graphics;
+    let state2 = this.toState.graphics;
+
+    let curve = this.graphics.curve;
+
+    let dx = state1.x - state2.x;
+    let dy = state1.y - state2.y;
+
+    if (curve <= 5 && curve >= -5) {
+        this.drawStraightArrow(state1, state2, dx, dy);
+        return;
+    }
+
+    let distance = Math.sqrt(dx * dx + dy * dy);
+
+    let anchorX = state2.x + dx * 0.5 - (dy * curve / distance);
+    let anchorY = state2.y + dy * 0.5 + (dx * curve / distance);
+
+    let c = circleFromABC(state2.x, state2.y, state1.x, state1.y, anchorX, anchorY);
+
+    let startAngle, endAngle, midAngle = 0;
 
     if (curve > 5) {
         startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) + STATE_RADIUS / c.r;
@@ -1262,7 +1266,7 @@ Arrow.prototype.update = function () {
 
         midAngle = ((endAngle < startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
 
-    } else if (curve < -5) {
+    } else {
         startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) - STATE_RADIUS / c.r;
         endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
         this.graphics.arc(
@@ -1274,10 +1278,6 @@ Arrow.prototype.update = function () {
         );
 
         midAngle = ((endAngle > startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
-        
-    } else {
-        this.drawStraightArrow(state1, state2, dx, dy);
-        return;
     }
 
     this.label.anchor.set(0.5, 0.5);
