@@ -1238,14 +1238,20 @@ Arrow.prototype.update = function () {
     let c = circleFromABC(state2.x, state2.y, state1.x, state1.y, anchorX, anchorY);
 
     this.graphics.clear();
+
     if (this.focused) {
         this.graphics.lineStyle(2, FOCUS_COLOR, 1);
     } else {
         this.graphics.lineStyle(2, 0x000000, 1);
     }
+
+    let startAngle = 0;
+    let endAngle = 0;
+    let midAngle = 0;
+
     if (curve > 5) {
-        let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) + STATE_RADIUS / c.r;
-        let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
+        startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) + STATE_RADIUS / c.r;
+        endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) - STATE_RADIUS / c.r;
         this.graphics.arc(
             c.x,
             c.y,
@@ -1254,19 +1260,11 @@ Arrow.prototype.update = function () {
             Math.PI + endAngle
         );
 
-        let midAngle = ((endAngle < startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
-        this.label.anchor.set(0.5, 0.5);
-        this.label.x = c.x + (c.r + this.label.width / 2 + 15) * Math.cos(Math.PI + midAngle);
-        this.label.y = c.y + (c.r + 15) * Math.sin(Math.PI + midAngle);
-
-        ax = c.x + c.r * Math.cos(Math.PI + endAngle);
-        ay = c.y + c.r * Math.sin(Math.PI + endAngle);
-
-        drawArrowhead(this.graphics, ax, ay, -endAngle);
+        midAngle = ((endAngle < startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
 
     } else if (curve < -5) {
-        let startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) - STATE_RADIUS / c.r;
-        let endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
+        startAngle = Math.atan2(c.y - state1.y, c.x - state1.x) - STATE_RADIUS / c.r;
+        endAngle = Math.atan2(c.y - state2.y, c.x - state2.x) + STATE_RADIUS / c.r;
         this.graphics.arc(
             c.x,
             c.y,
@@ -1275,19 +1273,26 @@ Arrow.prototype.update = function () {
             Math.PI + startAngle
         );
 
-        let midAngle = ((startAngle < endAngle ? startAngle + 2 * Math.PI : startAngle) + endAngle) / 2;
-        this.label.anchor.set(0.5, 0.5);
-        this.label.x = c.x + (c.r + this.label.width / 2 + 15) * Math.cos(Math.PI + midAngle);
-        this.label.y = c.y + (c.r + 15) * Math.sin(Math.PI + midAngle);
-
-        ax = c.x + c.r * Math.cos(Math.PI + endAngle);
-        ay = c.y + c.r * Math.sin(Math.PI + endAngle);
-
-        drawArrowhead(this.graphics, ax, ay, -endAngle, true);
-
+        midAngle = ((endAngle > startAngle ? endAngle + 2 * Math.PI : endAngle) + startAngle) / 2;
+        
     } else {
+        this.drawStraightArrow(state1, state2, dx, dy);
+        return;
+    }
 
-        let point1 = closestPointOnCircle(state2.x, state2.y, state1.x, state1.y, STATE_RADIUS);
+    this.label.anchor.set(0.5, 0.5);
+    this.label.x = c.x + (c.r + this.label.width / 2 + 15) * Math.cos(Math.PI + midAngle);
+    this.label.y = c.y + (c.r + 15) * Math.sin(Math.PI + midAngle);
+
+    ax = c.x + c.r * Math.cos(Math.PI + endAngle);
+    ay = c.y + c.r * Math.sin(Math.PI + endAngle);
+
+    drawArrowhead(this.graphics, ax, ay, -endAngle);
+
+}
+
+Arrow.prototype.drawStraightArrow = function (state1, state2, dx, dy) {
+    let point1 = closestPointOnCircle(state2.x, state2.y, state1.x, state1.y, STATE_RADIUS);
         this.graphics.moveTo(point1.x, point1.y);
         let point2 = closestPointOnCircle(state1.x, state1.y, state2.x, state2.y, STATE_RADIUS);
         this.graphics.lineTo(point2.x, point2.y);
@@ -1300,8 +1305,6 @@ Arrow.prototype.update = function () {
         this.label.y = (state2.y + dy * 0.5) + sin * 5
 
         drawArrowhead(this.graphics, point2.x, point2.y, point2.angle);
-    }
-
 }
 
 /**
@@ -1411,12 +1414,11 @@ function updateAll() {
  * @param x
  * @param y
  * @param angle
- * @param {boolean} reversed - changes arrowhead drawing points for negatively curved arrows
  */
-function drawArrowhead(arrow, x, y, angle, reversed) {
+function drawArrowhead(arrow, x, y, angle) {
     arrow.moveTo(x, y);
     arrow.beginFill(0x000000);
-    if (reversed) {
+    if (arrow.curve < -5) {
         arrow.lineTo(x - 10 * Math.sin(Math.PI / 6 + angle), y - 10 * Math.cos(Math.PI / 6 + angle));
         arrow.lineTo(x - 10 * Math.sin(angle - Math.PI / 6), y - 10 * Math.cos(angle - Math.PI / 6));
     } else {
