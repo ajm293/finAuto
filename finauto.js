@@ -1591,7 +1591,17 @@ function initControls() {
 
     // Mode switching
 
+    function cancelAdditions() {
+        addingState = false;
+        stateGhost.visible = false;
+        arrowGhost.visible = false;
+        arrowGhost.text = "Click on starting state, or canvas if initial.";
+        delete creatingArrow;
+        creatingArrow = null;
+    }
+
     document.getElementById('simulate').onclick = function () {
+        cancelAdditions();
         if (workingGraph.initialState) {
             document.getElementById('inputs').style.display = "none";
             document.getElementById('simulates').style.display = "inline-block";
@@ -1639,6 +1649,7 @@ function initControls() {
     }
 
     document.getElementById('regex').onclick = function () {
+        cancelAdditions();
         document.getElementById('inputs').style.display = "none";
         document.getElementById('simulates').style.display = "none";
         document.getElementById('regexes').style.display = "inline-block";
